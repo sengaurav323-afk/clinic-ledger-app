@@ -119,22 +119,14 @@
   .export-btn:disabled { color: var(--line); cursor: default; }
   .setup-banner { background: #FFF6E0; border: 1px solid var(--c-referral); color: #6B4E11; border-radius: 8px; padding: 14px; margin: 16px; font-size: 13px; line-height: 1.5; }
   .setup-banner code { background: #F3EEE0; padding: 1px 5px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
-
-  /* Auth screen */
   #authScreen { max-width: 420px; margin: 0 auto; padding: 48px 20px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
   #authScreen .eyebrow { text-align: center; margin-bottom: 4px; }
   #authScreen h1 { text-align: center; margin-bottom: 24px; }
-  .auth-tabs { display: flex; border: 1px solid var(--ink); border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
-  .auth-tabs button { flex: 1; padding: 9px 0; background: transparent; color: var(--ink); border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
-  .auth-tabs button.active { background: var(--ink); color: var(--paper); }
-  .auth-panel { display: none; }
-  .auth-panel.active { display: block; }
   .auth-toggle { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; }
   .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
   .auth-msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
   .auth-msg.error { color: #9C3B2E; }
   .auth-msg.ok { color: #2F5233; }
-  #recaptcha-container { margin-bottom: 14px; }
   .user-badge { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   .logout-link { color: var(--muted); font-size: 12px; text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; }
 </style>
@@ -143,40 +135,41 @@
 
 <div id="authScreen">
   <div class="eyebrow">Clinic Ledger</div>
-  <h1>Sign in to your ledger</h1>
+  <h1 id="authHeading">Sign in to your ledger</h1>
 
-  <div class="auth-tabs">
-    <button type="button" data-tab="email" class="active">Email</button>
-    <button type="button" data-tab="phone">Mobile number</button>
-  </div>
-
-  <!-- Email auth -->
   <div class="auth-panel active" id="emailPanel">
     <form id="emailForm">
+      <div id="signupFields" style="display:none">
+        <div style="display:flex; gap:10px">
+          <div style="flex:1">
+            <label class="field-label">First name</label>
+            <input class="text-input" id="firstNameInput" placeholder="Gaurav" />
+          </div>
+          <div style="flex:1">
+            <label class="field-label">Last name</label>
+            <input class="text-input" id="lastNameInput" placeholder="Sen" />
+          </div>
+        </div>
+        <label class="field-label">City</label>
+        <input class="text-input" id="cityInput" placeholder="Indore" />
+        <label class="field-label">Mobile number</label>
+        <input class="text-input" type="tel" id="mobileInput" placeholder="+91 98765 43210" />
+      </div>
+
       <label class="field-label">Email</label>
       <input class="text-input" type="email" id="emailInput" placeholder="you@example.com" required />
       <label class="field-label">Password</label>
       <input class="text-input" type="password" id="passwordInput" placeholder="At least 6 characters" required minlength="6" />
+
+      <div id="confirmPasswordGroup" style="display:none">
+        <label class="field-label">Confirm password</label>
+        <input class="text-input" type="password" id="confirmPasswordInput" placeholder="Re-enter password" minlength="6" />
+      </div>
+
       <button type="submit" class="submit-btn tap" id="emailSubmitBtn">Sign in</button>
     </form>
-    <div class="auth-toggle" id="emailToggle">Don't have an account? <a id="toEmailSignup">Create one</a></div>
+    <div class="auth-toggle" id="emailToggle">Don't have an account? <a>Create one</a></div>
     <div class="auth-msg" id="emailMsg"></div>
-  </div>
-
-  <!-- Phone auth -->
-  <div class="auth-panel" id="phonePanel">
-    <form id="phoneForm">
-      <label class="field-label">Mobile number (with country code)</label>
-      <input class="text-input" type="tel" id="phoneInput" placeholder="+91 98765 43210" required />
-      <div id="recaptcha-container"></div>
-      <button type="submit" class="submit-btn tap" id="phoneSubmitBtn">Send code</button>
-    </form>
-    <form id="otpForm" style="display:none">
-      <label class="field-label">Enter the 6-digit code sent to your phone</label>
-      <input class="text-input" type="text" id="otpInput" placeholder="123456" inputmode="numeric" required />
-      <button type="submit" class="submit-btn tap">Verify & sign in</button>
-    </form>
-    <div class="auth-msg" id="phoneMsg"></div>
   </div>
 </div>
 
@@ -262,21 +255,14 @@
   </div>
 </div>
 
-<!-- ============================================================
-  SETUP REQUIRED: paste your Firebase project config below.
-  See the setup guide provided alongside this file for how to
-  create a free Firebase project and get these values.
-============================================================= -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
     getAuth, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    RecaptchaVerifier, signInWithPhoneNumber,
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  // ---- PASTE YOUR FIREBASE CONFIG HERE ----
   const firebaseConfig = {
     apiKey: "AIzaSyBjzfzvCXPCifxeG01QRJH6jT3Yh0VxFJk",
     authDomain: "curevona.firebaseapp.com",
@@ -285,7 +271,6 @@
     messagingSenderId: "56185108381",
     appId: "1:56185108381:web:5563db3ef9573035762174",
   };
-  // ------------------------------------------
 
   const FEE_TYPES = [
     { key: "counselling", label: "Counselling", color: "#2F5233" },
@@ -319,7 +304,6 @@
   const entryFeeKeys = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
   const entryTotal = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
 
-  // ---- App state ----
   let entries = [];
   let period = "day";
   let anchorDate = todayISO();
@@ -335,7 +319,7 @@
   const configured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 
   let auth = null;
-  let currentUnsub = null; // unsubscribe from previous onSnapshot listener
+  let currentUnsub = null;
 
   if (!configured) {
     authScreen.style.display = "none";
@@ -356,8 +340,8 @@
       if (user) {
         authScreen.style.display = "none";
         appEl.style.display = "block";
-        document.getElementById("userLabel").textContent = user.email || user.phoneNumber || "Signed in";
-        const q = query(colRef, where("userId", "==", user.uid), orderBy("date", "desc"));
+        document.getElementById("userLabel").textContent = user.email || "Signed in";
+        const q = query(colRef, where("userId", "==", user.uid));
         currentUnsub = onSnapshot(q, (snap) => {
           entries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           render();
@@ -407,7 +391,6 @@
     }
   }
 
-  // ---- Period controls ----
   document.querySelectorAll("#periodSeg button").forEach((btn) => {
     btn.addEventListener("click", () => {
       period = btn.dataset.period;
@@ -438,7 +421,6 @@
     return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
 
-  // ---- Add form ----
   const addBtn = document.getElementById("addBtn");
   const sheetOverlay = document.getElementById("sheetOverlay");
   const entryForm = document.getElementById("entryForm");
@@ -509,7 +491,6 @@
     sheetOverlay.classList.remove("open");
   });
 
-  // ---- Export ----
   document.getElementById("exportBtn").addEventListener("click", () => {
     if (entries.length === 0) return;
     const header = ["Date", "Patient", "Counselling", "Medicine", "Referral", "Other", "Total", "Status", "Paid At", "Notes"];
@@ -528,7 +509,6 @@
   });
   document.getElementById("exportBtn").disabled = true;
 
-  // ---- Render ----
   function render() {
     document.getElementById("exportBtn").disabled = entries.length === 0;
     const range = currentRange();
@@ -635,16 +615,13 @@
     return div.innerHTML;
   }
 
-  // ---- Auth screen wiring ----
   function authErrorMessage(err) {
     const code = err && err.code ? err.code : "";
     if (code.includes("email-already-in-use")) return "An account with this email already exists — try signing in instead.";
     if (code.includes("invalid-email")) return "That email address looks invalid.";
     if (code.includes("weak-password")) return "Password should be at least 6 characters.";
     if (code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) return "Incorrect email or password.";
-    if (code.includes("invalid-phone-number")) return "Enter the number with country code, e.g. +91XXXXXXXXXX.";
     if (code.includes("too-many-requests")) return "Too many attempts — please wait a bit and try again.";
-    if (code.includes("invalid-verification-code")) return "Incorrect code — try again.";
     return "Something went wrong. Please try again.";
   }
   function setAuthMsg(id, text, type) {
@@ -653,20 +630,15 @@
     el.className = "auth-msg" + (type ? " " + type : "");
   }
 
-  document.querySelectorAll(".auth-tabs button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".auth-tabs button").forEach((b) => b.classList.toggle("active", b === btn));
-      document.getElementById("emailPanel").classList.toggle("active", btn.dataset.tab === "email");
-      document.getElementById("phonePanel").classList.toggle("active", btn.dataset.tab === "phone");
-    });
-  });
-
   let isSignupMode = false;
   function updateEmailToggleUI() {
+    document.getElementById("authHeading").textContent = isSignupMode ? "Create your account" : "Sign in to your ledger";
     document.getElementById("emailSubmitBtn").textContent = isSignupMode ? "Create account" : "Sign in";
     document.getElementById("emailToggle").innerHTML = isSignupMode
       ? 'Already have an account? <a>Sign in</a>'
       : "Don't have an account? <a>Create one</a>";
+    document.getElementById("signupFields").style.display = isSignupMode ? "block" : "none";
+    document.getElementById("confirmPasswordGroup").style.display = isSignupMode ? "block" : "none";
   }
   document.getElementById("emailToggle").addEventListener("click", (e) => {
     if (e.target.tagName === "A") {
@@ -683,45 +655,29 @@
     const email = document.getElementById("emailInput").value.trim();
     const password = document.getElementById("passwordInput").value;
     setAuthMsg("emailMsg", "", "");
-    try {
-      if (isSignupMode) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
+
+    if (isSignupMode) {
+      const confirmPassword = document.getElementById("confirmPasswordInput").value;
+      if (password !== confirmPassword) {
+        setAuthMsg("emailMsg", "Passwords don't match.", "error");
+        return;
+      }
+      const firstName = document.getElementById("firstNameInput").value.trim();
+      const lastName = document.getElementById("lastNameInput").value.trim();
+      const city = document.getElementById("cityInput").value.trim();
+      const mobile = document.getElementById("mobileInput").value.trim();
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await setDoc(doc(db, "users", cred.user.uid), { firstName, lastName, city, mobile, email });
+      } catch (err) {
+        setAuthMsg("emailMsg", authErrorMessage(err), "error");
+      }
+    } else {
+      try {
         await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        setAuthMsg("emailMsg", authErrorMessage(err), "error");
       }
-    } catch (err) {
-      setAuthMsg("emailMsg", authErrorMessage(err), "error");
-    }
-  });
-
-  let recaptchaVerifier = null;
-  let confirmationResult = null;
-
-  document.getElementById("phoneForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!auth) return;
-    setAuthMsg("phoneMsg", "", "");
-    const phone = document.getElementById("phoneInput").value.trim();
-    try {
-      if (!recaptchaVerifier) {
-        recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "normal" });
-      }
-      confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-      document.getElementById("phoneForm").style.display = "none";
-      document.getElementById("otpForm").style.display = "block";
-      setAuthMsg("phoneMsg", "Code sent — check your messages.", "ok");
-    } catch (err) {
-      setAuthMsg("phoneMsg", authErrorMessage(err), "error");
-    }
-  });
-
-  document.getElementById("otpForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const code = document.getElementById("otpInput").value.trim();
-    try {
-      await confirmationResult.confirm(code);
-    } catch (err) {
-      setAuthMsg("phoneMsg", authErrorMessage(err), "error");
     }
   });
 
@@ -729,5 +685,3 @@
 </script>
 </body>
 </html>
-
-
