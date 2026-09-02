@@ -7,17 +7,17 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   :root {
-    --paper: #FAF7EF;
-    --ink: #1F2A24;
-    --line: #DDD3BC;
-    --muted: #8A8270;
+    --paper: #F5F7FA;
+    --ink: #1A2332;
+    --line: #E2E6ED;
+    --muted: #6B7280;
     --c-counselling: #2F5233;
     --c-medicine: #5B4A8A;
     --c-referral: #B8862E;
     --c-other: #5A6B72;
-    --sidebar: #16211C;
-    --sidebar-hover: #223028;
-    --accent: #2F5233;
+    --sidebar: #101B33;
+    --sidebar-hover: #1B2A4A;
+    --accent: #2E5BFF;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -63,9 +63,9 @@
   .user-card { display: flex; align-items: center; gap: 10px; background: var(--sidebar-hover); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
   .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
   .user-card-name { font-weight: 600; font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .user-card-role { font-size: 11px; color: #A9A497; }
+  .user-card-role { font-size: 11px; color: #8494B0; }
   .nav-list { list-style: none; margin: 0; padding: 0; flex: 1; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: #C9C5B8; font-size: 14px; cursor: pointer; margin-bottom: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: #A8B3C7; font-size: 14px; cursor: pointer; margin-bottom: 2px; }
   .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
   .nav-item.active { background: var(--accent); color: #fff; }
   .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex-shrink: 0; }
@@ -79,17 +79,17 @@
   header.dash-header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 20px; }
   .segmented { display: flex; border: 1px solid var(--ink); border-radius: 8px; overflow: hidden; margin-bottom: 10px; width: fit-content; }
   .segmented button { padding: 8px 22px; background: transparent; color: var(--ink); border: none; font-size: 13px; font-weight: 600; text-transform: capitalize; cursor: pointer; }
-  .segmented button.active { background: var(--ink); color: var(--paper); }
+  .segmented button.active { background: var(--accent); color: #fff; }
   .range-nav { display: flex; align-items: center; gap: 14px; }
   .nav-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; cursor: pointer; }
   .range-label { font-size: 14px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
 
   .error-box { background: #F6E4DF; border: 1px solid #9C3B2E; color: #7A2D22; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
   .cards-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #FFFDF8; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(16,27,51,0.06); }
   .card-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
   .card-value { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
-  .panel { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #FFFDF8; }
+  .panel { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(16,27,51,0.06); }
   .panel-title { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
   .bar-row { margin-bottom: 10px; }
   .bar-row .top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px; }
@@ -115,7 +115,7 @@
   .fee-tag-label { font-size: 11px; }
   .fee-tag-amt { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
   .entry-notes { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .fab { position: fixed; bottom: 28px; right: 32px; background: var(--ink); color: var(--paper); border: none; border-radius: 999px; width: 56px; height: 56px; font-size: 26px; box-shadow: 0 6px 16px rgba(31,42,36,0.3); cursor: pointer; z-index: 10; }
+  .fab { position: fixed; bottom: 28px; right: 32px; background: var(--accent); color: #fff; border: none; border-radius: 999px; width: 56px; height: 56px; font-size: 26px; box-shadow: 0 6px 16px rgba(46,91,255,0.35); cursor: pointer; z-index: 10; }
   .sheet-overlay { position: fixed; inset: 0; background: rgba(31,42,36,0.4); z-index: 20; display: none; align-items: center; justify-content: center; }
   .sheet-overlay.open { display: flex; }
   .sheet { background: var(--paper); width: 100%; max-width: 440px; border-radius: 14px; padding: 22px; animation: sheetUp 0.25s ease; max-height: 88vh; overflow-y: auto; }
@@ -129,7 +129,7 @@
   .fee-name { font-size: 14px; font-weight: 600; flex: 1 1 auto; cursor: pointer; }
   .fee-amount-input { width: 90px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
   .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
-  .submit-btn { width: 100%; background: var(--ink); color: var(--paper); border: none; border-radius: 8px; padding: 13px 0; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .submit-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 13px 0; font-size: 15px; font-weight: 600; cursor: pointer; }
   .export-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer; }
   .export-btn:disabled { color: var(--line); cursor: default; }
   .setup-banner { background: #FFF6E0; border: 1px solid var(--c-referral); color: #6B4E11; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
@@ -150,7 +150,7 @@
 
   /* ===== Subscription / Referral / placeholder pages ===== */
   .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
-  .plan-card { border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: #FFFDF8; position: relative; }
+  .plan-card { border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: #FFFFFF; position: relative; }
   .plan-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
   .plan-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; margin-bottom: 4px; }
   .plan-price { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 700; margin-bottom: 10px; }
@@ -161,8 +161,8 @@
   .plan-badge.trial { background: #EFE7D0; color: #6B4E11; }
   .plan-badge.active { background: #DCEBDC; color: #2F5233; }
   .plan-btn { width: 100%; padding: 9px 0; border-radius: 7px; border: 1px solid var(--ink); background: transparent; color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer; }
-  .plan-btn.primary { background: var(--ink); color: var(--paper); }
-  .referral-box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #FFFDF8; margin-bottom: 14px; }
+  .plan-btn.primary { background: var(--accent); color: #fff; }
+  .referral-box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #FFFFFF; margin-bottom: 14px; }
   .referral-code { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 16px; flex: 1; }
   .placeholder-panel { border: 1px dashed var(--line); border-radius: 10px; padding: 40px 20px; text-align: center; color: var(--muted); }
 
@@ -1056,3 +1056,4 @@
 
 
 <style>.text-input::placeholder { color: #B7AF9C !important; font-style: italic; opacity: 1; }</style>
+
