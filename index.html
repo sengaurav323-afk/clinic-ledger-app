@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Clinic Ledger — Patient Payments</title>
+<title>Clinic Ledger</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   :root {
@@ -15,6 +15,9 @@
     --c-medicine: #5B4A8A;
     --c-referral: #B8862E;
     --c-other: #5A6B72;
+    --sidebar: #16211C;
+    --sidebar-hover: #223028;
+    --accent: #2F5233;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
@@ -22,13 +25,6 @@
     background: var(--paper);
     color: var(--ink);
     font-family: 'Source Sans 3', 'Inter', system-ui, sans-serif;
-  }
-  #app {
-    max-width: 480px;
-    margin: 0 auto;
-    position: relative;
-    padding-bottom: 84px;
-    min-height: 100vh;
   }
   button, input, select { font-family: inherit; }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -51,47 +47,66 @@
     white-space: nowrap;
   }
   .stamp.small { font-size: 9px; padding: 1px 5px; }
-  header {
-    border-bottom: 2px solid var(--ink);
-    padding: 20px 16px 14px;
-    position: sticky;
-    top: 0;
-    background: var(--paper);
-    z-index: 5;
+
+  /* ===== App shell: sidebar + main ===== */
+  #appShell { display: flex; min-height: 100vh; }
+  #sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--sidebar);
+    color: #E8E4D8;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 14px;
   }
-  .eyebrow-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-  .eyebrow { font-family: 'Fraunces', serif; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
-  h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; margin: 0 0 14px; }
-  .segmented { display: flex; border: 1px solid var(--ink); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
-  .segmented button { flex: 1; padding: 8px 0; background: transparent; color: var(--ink); border: none; font-size: 13px; font-weight: 600; text-transform: capitalize; cursor: pointer; }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; color: #fff; padding: 0 6px 20px; }
+  .user-card { display: flex; align-items: center; gap: 10px; background: var(--sidebar-hover); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .user-card-name { font-weight: 600; font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-card-role { font-size: 11px; color: #A9A497; }
+  .nav-list { list-style: none; margin: 0; padding: 0; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: #C9C5B8; font-size: 14px; cursor: pointer; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+  .nav-item.active { background: var(--accent); color: #fff; }
+  .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex-shrink: 0; }
+  .nav-badge-new { font-size: 9px; background: #B8862E; color: #fff; padding: 1px 5px; border-radius: 999px; margin-left: auto; }
+  .signout-item { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--sidebar-hover); }
+
+  #main { flex: 1; min-width: 0; padding: 24px 28px 60px; }
+  .page-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 26px; margin: 0 0 2px; }
+  .page-subtitle { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+
+  header.dash-header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 20px; }
+  .segmented { display: flex; border: 1px solid var(--ink); border-radius: 8px; overflow: hidden; margin-bottom: 10px; width: fit-content; }
+  .segmented button { padding: 8px 22px; background: transparent; color: var(--ink); border: none; font-size: 13px; font-weight: 600; text-transform: capitalize; cursor: pointer; }
   .segmented button.active { background: var(--ink); color: var(--paper); }
-  .range-nav { display: flex; align-items: center; justify-content: space-between; }
-  .nav-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 34px; height: 34px; font-size: 16px; cursor: pointer; }
+  .range-nav { display: flex; align-items: center; gap: 14px; }
+  .nav-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; cursor: pointer; }
   .range-label { font-size: 14px; font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
-  main { padding: 16px; }
+
   .error-box { background: #F6E4DF; border: 1px solid #9C3B2E; color: #7A2D22; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
-  .cards-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-  .card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #FFFDF8; }
-  .card-label { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px; }
-  .card-value { font-family: 'IBM Plex Mono', monospace; font-size: 19px; font-weight: 600; }
-  .panel { border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 12px; background: #FFFDF8; }
-  .panel-title { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
-  .bar-row { margin-bottom: 9px; }
-  .bar-row .top { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
-  .bar-track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
-  .combo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .cards-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #FFFDF8; }
+  .card-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+  .card-value { font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600; }
+  .panel { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #FFFDF8; }
+  .panel-title { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+  .bar-row { margin-bottom: 10px; }
+  .bar-row .top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px; }
+  .bar-track { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+  .combo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
   .combo-tags { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 auto; }
   .combo-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
   .combo-total { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; white-space: nowrap; }
-  .list-count { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
-  .empty-state { border: 1px dashed var(--line); border-radius: 8px; padding: 28px 16px; text-align: center; color: var(--muted); font-size: 13px; }
-  .entry-card { border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; background: #fff; margin-bottom: 8px; }
+  .list-count { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .empty-state { border: 1px dashed var(--line); border-radius: 8px; padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .entry-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #fff; margin-bottom: 8px; }
   .entry-top { display: flex; align-items: flex-start; gap: 10px; }
-  .entry-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry-name { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .entry-date { font-size: 11px; color: var(--muted); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
   .entry-right { text-align: right; flex-shrink: 0; }
-  .entry-total { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 14px; }
+  .entry-total { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; }
   .del-btn { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; flex-shrink: 0; padding: 4px; }
   .mark-paid-btn { background: transparent; border: 1.3px solid #9C3B2E; color: #9C3B2E; border-radius: 3px; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
   .fee-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
@@ -100,11 +115,11 @@
   .fee-tag-label { font-size: 11px; }
   .fee-tag-amt { font-size: 11px; font-family: 'IBM Plex Mono', monospace; color: var(--muted); }
   .entry-notes { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .fab { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper); border: none; border-radius: 999px; width: 56px; height: 56px; font-size: 26px; box-shadow: 0 6px 16px rgba(31,42,36,0.3); cursor: pointer; z-index: 10; max-width: 480px; }
-  .sheet-overlay { position: fixed; inset: 0; background: rgba(31,42,36,0.4); z-index: 20; display: none; align-items: flex-end; justify-content: center; }
+  .fab { position: fixed; bottom: 28px; right: 32px; background: var(--ink); color: var(--paper); border: none; border-radius: 999px; width: 56px; height: 56px; font-size: 26px; box-shadow: 0 6px 16px rgba(31,42,36,0.3); cursor: pointer; z-index: 10; }
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(31,42,36,0.4); z-index: 20; display: none; align-items: center; justify-content: center; }
   .sheet-overlay.open { display: flex; }
-  .sheet { background: var(--paper); width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 18px 18px 26px; animation: sheetUp 0.25s ease; max-height: 88vh; overflow-y: auto; }
-  .sheet-handle { width: 36px; height: 4px; background: var(--line); border-radius: 2px; margin: 0 auto 16px; }
+  .sheet { background: var(--paper); width: 100%; max-width: 440px; border-radius: 14px; padding: 22px; animation: sheetUp 0.25s ease; max-height: 88vh; overflow-y: auto; }
+  .sheet-handle { display: none; }
   .sheet h2 { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; margin: 0 0 16px; }
   label.field-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
   .text-input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; margin-bottom: 14px; }
@@ -115,20 +130,52 @@
   .fee-amount-input { width: 90px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
   .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
   .submit-btn { width: 100%; background: var(--ink); color: var(--paper); border: none; border-radius: 8px; padding: 13px 0; font-size: 15px; font-weight: 600; cursor: pointer; }
-  .export-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 600; color: var(--ink); cursor: pointer; }
+  .export-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer; }
   .export-btn:disabled { color: var(--line); cursor: default; }
-  .setup-banner { background: #FFF6E0; border: 1px solid var(--c-referral); color: #6B4E11; border-radius: 8px; padding: 14px; margin: 16px; font-size: 13px; line-height: 1.5; }
+  .setup-banner { background: #FFF6E0; border: 1px solid var(--c-referral); color: #6B4E11; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
   .setup-banner code { background: #F3EEE0; padding: 1px 5px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+  /* ===== Auth screen ===== */
   #authScreen { max-width: 420px; margin: 0 auto; padding: 48px 20px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
-  #authScreen .eyebrow { text-align: center; margin-bottom: 4px; }
-  #authScreen h1 { text-align: center; margin-bottom: 24px; }
+  #authScreen .eyebrow { text-align: center; margin-bottom: 4px; font-family: 'Fraunces', serif; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  #authScreen h1 { text-align: center; margin-bottom: 24px; font-family: 'Fraunces', serif; font-weight: 600; font-size: 26px; }
   .auth-toggle { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; }
   .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
   .auth-msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
   .auth-msg.error { color: #9C3B2E; }
   .auth-msg.ok { color: #2F5233; }
-  .user-badge { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-  .logout-link { color: var(--muted); font-size: 12px; text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; }
+  .pw-wrap { position: relative; }
+  .pw-wrap .text-input { padding-right: 60px; }
+  .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-top: -7px; background: none; border: none; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px; }
+
+  /* ===== Subscription / Referral / placeholder pages ===== */
+  .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .plan-card { border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: #FFFDF8; position: relative; }
+  .plan-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .plan-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; margin-bottom: 4px; }
+  .plan-price { font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  .plan-price span { font-size: 12px; font-weight: 500; color: var(--muted); }
+  .plan-features { list-style: none; padding: 0; margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+  .plan-features li { padding: 3px 0; }
+  .plan-badge { position: absolute; top: 14px; right: 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 999px; }
+  .plan-badge.trial { background: #EFE7D0; color: #6B4E11; }
+  .plan-badge.active { background: #DCEBDC; color: #2F5233; }
+  .plan-btn { width: 100%; padding: 9px 0; border-radius: 7px; border: 1px solid var(--ink); background: transparent; color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer; }
+  .plan-btn.primary { background: var(--ink); color: var(--paper); }
+  .referral-box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #FFFDF8; margin-bottom: 14px; }
+  .referral-code { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 16px; flex: 1; }
+  .placeholder-panel { border: 1px dashed var(--line); border-radius: 10px; padding: 40px 20px; text-align: center; color: var(--muted); }
+
+  @media (max-width: 860px) {
+    #appShell { flex-direction: column; }
+    #sidebar { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; padding: 10px 12px; gap: 8px; }
+    .brand { padding: 0 10px 0 0; margin-bottom: 0; }
+    .user-card { display: none; }
+    .nav-list { display: flex; flex: none; gap: 4px; }
+    .nav-item span.nav-label { display: none; }
+    .signout-item { margin-top: 0; padding-top: 0; border-top: none; }
+    #main { padding: 16px; padding-bottom: 90px; }
+  }
 </style>
 </head>
 <body>
@@ -137,7 +184,7 @@
   <div class="eyebrow">Clinic Ledger</div>
   <h1 id="authHeading">Sign in to your ledger</h1>
 
-  <div class="auth-panel active" id="emailPanel">
+  <div id="signInPanel">
     <form id="emailForm">
       <div id="signupFields" style="display:none">
         <div style="display:flex; gap:10px">
@@ -153,84 +200,162 @@
         <label class="field-label">City</label>
         <input class="text-input" id="cityInput" placeholder="Indore" />
         <label class="field-label">Mobile number</label>
-        <input class="text-input" type="tel" id="mobileInput" placeholder="+91 98765 43210" />
+        <input class="text-input" type="tel" id="mobileInput" placeholder="e.g. +919876543210" />
+        <label class="field-label">Referral code (optional)</label>
+        <input class="text-input" id="referredByInput" placeholder="Leave blank if none" />
       </div>
 
       <label class="field-label">Email</label>
       <input class="text-input" type="email" id="emailInput" placeholder="you@example.com" required />
+
       <label class="field-label">Password</label>
-      <input class="text-input" type="password" id="passwordInput" placeholder="At least 6 characters" required minlength="6" />
+      <div class="pw-wrap">
+        <input class="text-input" type="password" id="passwordInput" placeholder="At least 6 characters" required minlength="6" />
+        <button type="button" class="pw-toggle" data-target="passwordInput">Show</button>
+      </div>
 
       <div id="confirmPasswordGroup" style="display:none">
         <label class="field-label">Confirm password</label>
-        <input class="text-input" type="password" id="confirmPasswordInput" placeholder="Re-enter password" minlength="6" />
+        <div class="pw-wrap">
+          <input class="text-input" type="password" id="confirmPasswordInput" placeholder="Re-enter password" minlength="6" />
+          <button type="button" class="pw-toggle" data-target="confirmPasswordInput">Show</button>
+        </div>
       </div>
 
       <button type="submit" class="submit-btn tap" id="emailSubmitBtn">Sign in</button>
     </form>
+    <div id="forgotPasswordRow" style="text-align:center; margin-top:10px">
+      <a id="forgotPasswordLink" style="font-size:13px; color:var(--muted); text-decoration:underline; cursor:pointer">Forgot password?</a>
+    </div>
     <div class="auth-toggle" id="emailToggle">Don't have an account? <a>Create one</a></div>
     <div class="auth-msg" id="emailMsg"></div>
   </div>
+
+  <div id="resetPanel" style="display:none">
+    <p style="font-size:14px; color:var(--muted); text-align:center; margin-top:-10px">Enter your registered email address and we'll send you a link to reset your password.</p>
+    <form id="resetForm">
+      <label class="field-label">Email</label>
+      <input class="text-input" type="email" id="resetEmailInput" placeholder="you@example.com" required />
+      <button type="submit" class="submit-btn tap">Send reset link</button>
+    </form>
+    <div class="auth-toggle" id="backToSignInLink"><a>← Back to sign in</a></div>
+    <div class="auth-msg" id="resetMsg"></div>
+  </div>
 </div>
 
-<div id="app" style="display:none">
-  <div id="setupBanner"></div>
+<div id="appShell" style="display:none">
+  <div id="sidebar">
+    <div class="brand">Clinic Ledger</div>
+    <div class="user-card">
+      <div class="avatar" id="avatarInitials">?</div>
+      <div style="min-width:0">
+        <div class="user-card-name" id="userFullName">—</div>
+        <div class="user-card-role">Clinic Admin</div>
+      </div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" data-view="dashboard"><span class="dot"></span><span class="nav-label">Dashboard</span></li>
+      <li class="nav-item" data-view="placeholder-payments"><span class="dot"></span><span class="nav-label">Payments</span></li>
+      <li class="nav-item" data-view="placeholder-patients"><span class="dot"></span><span class="nav-label">Patients</span></li>
+      <li class="nav-item" data-view="placeholder-reports"><span class="dot"></span><span class="nav-label">Reports</span></li>
+      <li class="nav-item" data-view="placeholder-expenses"><span class="dot"></span><span class="nav-label">Expenses</span></li>
+      <li class="nav-item" data-view="placeholder-categories"><span class="dot"></span><span class="nav-label">Categories</span></li>
+      <li class="nav-item" data-view="placeholder-settings"><span class="dot"></span><span class="nav-label">Settings</span></li>
+      <li class="nav-item" data-view="subscription"><span class="dot"></span><span class="nav-label">Subscription</span></li>
+      <li class="nav-item" data-view="refer"><span class="dot"></span><span class="nav-label">Refer &amp; Earn</span><span class="nav-badge-new">New</span></li>
+    </ul>
+    <div class="signout-item">
+      <li class="nav-item" id="logoutBtn" style="list-style:none"><span class="dot"></span><span class="nav-label">Sign out</span></li>
+    </div>
+  </div>
 
-  <header>
-    <div class="eyebrow-row">
-      <div class="eyebrow">Clinic Ledger</div>
-      <button class="export-btn tap" id="exportBtn" title="Export all entries as CSV">Export CSV</button>
-    </div>
-    <div class="user-badge">
-      <span id="userLabel"></span>
-      <button class="logout-link" id="logoutBtn">Sign out</button>
-    </div>
-    <h1>Patient payments</h1>
-    <div class="segmented" id="periodSeg">
-      <button data-period="day" class="active">Day</button>
-      <button data-period="week">Week</button>
-      <button data-period="month">Month</button>
-    </div>
-    <div class="range-nav">
-      <button class="nav-btn tap" id="prevBtn" aria-label="Previous period">‹</button>
-      <div class="range-label" id="rangeLabel">Today</div>
-      <button class="nav-btn tap" id="nextBtn" aria-label="Next period">›</button>
-    </div>
-  </header>
-
-  <main>
+  <div id="main">
+    <div id="setupBanner"></div>
     <div id="errorBox"></div>
 
-    <div class="cards-2">
-      <div class="card">
-        <div class="card-label">Received</div>
-        <div class="card-value" id="receivedVal" style="color:#2F5233">$0</div>
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard">
+      <header class="dash-header">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Overview of your clinic payments</p>
+          </div>
+          <button class="export-btn tap" id="exportBtn" title="Export all entries as CSV">Export CSV</button>
+        </div>
+        <div class="segmented" id="periodSeg">
+          <button data-period="day" class="active">Day</button>
+          <button data-period="week">Week</button>
+          <button data-period="month">Month</button>
+        </div>
+        <div class="range-nav">
+          <button class="nav-btn tap" id="prevBtn" aria-label="Previous period">‹</button>
+          <div class="range-label" id="rangeLabel">Today</div>
+          <button class="nav-btn tap" id="nextBtn" aria-label="Next period">›</button>
+        </div>
+      </header>
+
+      <div class="cards-row">
+        <div class="card">
+          <div class="card-label">Received</div>
+          <div class="card-value" id="receivedVal" style="color:#2F5233">₹0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Pending</div>
+          <div class="card-value" id="pendingVal">₹0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Transactions</div>
+          <div class="card-value" id="txnCountVal">0</div>
+        </div>
       </div>
-      <div class="card">
-        <div class="card-label">Pending</div>
-        <div class="card-value" id="pendingVal">$0</div>
+
+      <div class="panel">
+        <div class="panel-title">By fee type (received)</div>
+        <div id="typeBars"></div>
       </div>
+
+      <div class="panel" id="comboPanel" style="display:none">
+        <div class="panel-title">Who paid for what</div>
+        <div id="comboList"></div>
+      </div>
+
+      <div class="list-count" id="listCount">0 entries</div>
+      <div id="entryList"></div>
     </div>
 
-    <div class="panel">
-      <div class="panel-title">By fee type (received)</div>
-      <div id="typeBars"></div>
+    <!-- SUBSCRIPTION VIEW -->
+    <div id="view-subscription" style="display:none">
+      <h1 class="page-title">Subscription</h1>
+      <p class="page-subtitle">Your plan and billing status</p>
+      <div class="panel" id="subStatusPanel"></div>
+      <div class="plan-grid" id="planGrid"></div>
+      <p style="font-size:12px; color:var(--muted)">Note: online payment isn't connected yet — "Subscribe" is a placeholder until a payment gateway is set up.</p>
     </div>
 
-    <div class="panel" id="comboPanel" style="display:none">
-      <div class="panel-title">Who paid for what</div>
-      <div id="comboList"></div>
+    <!-- REFERRAL VIEW -->
+    <div id="view-refer" style="display:none">
+      <h1 class="page-title">Refer &amp; Earn</h1>
+      <p class="page-subtitle">Share your code — reward crediting isn't automated yet (see note below)</p>
+      <div class="referral-box">
+        <div class="referral-code" id="referralCodeVal">—</div>
+        <button class="export-btn tap" id="copyReferralBtn">Copy link</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted); max-width:480px">Referral codes are generated and can be shared, and new signups can enter one. Automatically crediting free days for successful referrals isn't implemented yet — that needs secure server-side logic (Cloud Functions) to prevent abuse, which this project isn't set up for yet.</p>
     </div>
 
-    <div class="list-count" id="listCount">0 entries</div>
-    <div id="entryList"></div>
-  </main>
+    <!-- PLACEHOLDER VIEWS -->
+    <div id="view-placeholder" style="display:none">
+      <h1 class="page-title" id="placeholderTitle">Coming soon</h1>
+      <p class="page-subtitle">This section isn't built yet</p>
+      <div class="placeholder-panel">This page will be built in a future update.</div>
+    </div>
+  </div>
 
   <button class="fab tap" id="addBtn" aria-label="Add payment">+</button>
 
   <div class="sheet-overlay" id="sheetOverlay">
     <form class="sheet" id="entryForm">
-      <div class="sheet-handle"></div>
       <h2>New payment</h2>
 
       <label class="field-label">Patient name</label>
@@ -260,8 +385,9 @@
   import {
     getAuth, onAuthStateChanged, signOut,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    sendPasswordResetEmail,
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBjzfzvCXPCifxeG01QRJH6jT3Yh0VxFJk",
@@ -282,8 +408,9 @@
   const feeMeta = (key) => FEE_TYPES.find((f) => f.key === key) || FEE_TYPES[3];
 
   const todayISO = () => new Date().toISOString().slice(0, 10);
-  const fmtMoney = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-  const fmtDateShort = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const fmtMoney = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
+  const fmtDateShort = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  const fmtDateLong = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
   function weekRange(iso) {
     const d = new Date(iso + "T00:00:00");
@@ -304,6 +431,22 @@
   const entryFeeKeys = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
   const entryTotal = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
 
+  function addMonths(date, n) {
+    const d = new Date(date.getTime());
+    d.setMonth(d.getMonth() + n);
+    return d;
+  }
+  function addYears(date, n) {
+    const d = new Date(date.getTime());
+    d.setFullYear(d.getFullYear() + n);
+    return d;
+  }
+  function addDays(date, n) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
   let entries = [];
   let period = "day";
   let anchorDate = todayISO();
@@ -311,47 +454,87 @@
   let feeAmounts = { counselling: "", medicine: "", referral: "", other: "" };
   let db = null;
   let colRef = null;
+  let userProfile = null;
+  let isRegistering = false;
 
   const setupBanner = document.getElementById("setupBanner");
   const errorBox = document.getElementById("errorBox");
   const authScreen = document.getElementById("authScreen");
-  const appEl = document.getElementById("app");
+  const appShell = document.getElementById("appShell");
   const configured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 
   let auth = null;
   let currentUnsub = null;
 
+  function generateReferralCode(firstName) {
+    const base = (firstName || "USER").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8) || "USER";
+    const num = Math.floor(1000 + Math.random() * 9000);
+    return base + num;
+  }
+
+  function initials(first, last) {
+    const a = (first || "").trim()[0] || "";
+    const b = (last || "").trim()[0] || "";
+    return (a + b).toUpperCase() || "?";
+  }
+
   if (!configured) {
     authScreen.style.display = "none";
-    appEl.style.display = "block";
+    appShell.style.display = "flex";
     setupBanner.innerHTML = `<div class="setup-banner">
       <strong>Setup needed:</strong> this file needs a free Firebase project connected before it can save data.
-      Open this HTML file in a text editor, find the <code>firebaseConfig</code> section near the bottom,
-      and paste in your project's config values. See the setup guide for step-by-step instructions.
     </div>`;
   } else {
-    const app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
+    const fbApp = initializeApp(firebaseConfig);
+    auth = getAuth(fbApp);
+    db = getFirestore(fbApp);
     colRef = collection(db, "clinic_entries");
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
+      if (isRegistering) return;
       if (currentUnsub) { currentUnsub(); currentUnsub = null; }
       if (user) {
         authScreen.style.display = "none";
-        appEl.style.display = "block";
-        document.getElementById("userLabel").textContent = user.email || "Signed in";
+        appShell.style.display = "flex";
+
+        try {
+          const profSnap = await getDoc(doc(db, "users", user.uid));
+          userProfile = profSnap.exists() ? profSnap.data() : {};
+          if (!userProfile.referralCode) {
+            const code = generateReferralCode(userProfile.firstName);
+            await setDoc(doc(db, "users", user.uid), { referralCode: code }, { merge: true });
+            userProfile.referralCode = code;
+          }
+        } catch (e) {
+          userProfile = {};
+        }
+
+        const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(" ") || user.email;
+        document.getElementById("userFullName").textContent = fullName;
+        document.getElementById("avatarInitials").textContent = initials(userProfile.firstName, userProfile.lastName);
+
         const q = query(colRef, where("userId", "==", user.uid));
         currentUnsub = onSnapshot(q, (snap) => {
           entries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           render();
+          renderSubscription();
         }, (err) => {
-          showError("Could not load data — check your Firestore security rules.");
+          const code = err && err.code ? err.code : "";
+          if (code === "permission-denied") {
+            showError("Permission denied — check Firestore security rules.");
+          } else if (code === "unavailable") {
+            showError("Could not reach the database — check your connection.");
+          } else {
+            showError("Could not load data (" + (code || "unknown error") + "). Try refreshing.");
+          }
         });
+        renderSubscription();
+        renderReferral();
       } else {
-        appEl.style.display = "none";
+        appShell.style.display = "none";
         authScreen.style.display = "flex";
         entries = [];
+        userProfile = null;
       }
     });
 
@@ -391,6 +574,32 @@
     }
   }
 
+  // ---- Sidebar navigation ----
+  const views = ["dashboard", "subscription", "refer", "placeholder"];
+  function showView(view, label) {
+    views.forEach((v) => {
+      const el = document.getElementById("view-" + v);
+      if (el) el.style.display = "none";
+    });
+    if (view.startsWith("placeholder")) {
+      document.getElementById("view-placeholder").style.display = "block";
+      document.getElementById("placeholderTitle").textContent = label || "Coming soon";
+    } else {
+      const el = document.getElementById("view-" + view);
+      if (el) el.style.display = "block";
+    }
+  }
+  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+    item.addEventListener("click", () => {
+      document.querySelectorAll(".nav-item[data-view]").forEach((i) => i.classList.remove("active"));
+      item.classList.add("active");
+      const view = item.dataset.view;
+      const label = item.querySelector(".nav-label") ? item.querySelector(".nav-label").textContent : "";
+      showView(view, label);
+    });
+  });
+
+  // ---- Period controls ----
   document.querySelectorAll("#periodSeg button").forEach((btn) => {
     btn.addEventListener("click", () => {
       period = btn.dataset.period;
@@ -418,7 +627,7 @@
     if (period === "day") return anchorDate === todayISO() ? "Today" : fmtDateShort(anchorDate);
     if (period === "week") return `${fmtDateShort(range.start)} – ${fmtDateShort(range.end)}`;
     const d = new Date(anchorDate + "T00:00:00");
-    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
   }
 
   const addBtn = document.getElementById("addBtn");
@@ -541,6 +750,7 @@
     const pendingEl = document.getElementById("pendingVal");
     pendingEl.textContent = fmtMoney(pending);
     pendingEl.style.color = pending ? "#B8862E" : "var(--ink)";
+    document.getElementById("txnCountVal").textContent = periodEntries.length;
 
     const typeBars = document.getElementById("typeBars");
     typeBars.innerHTML = FEE_TYPES.map((f) => `
@@ -615,6 +825,105 @@
     return div.innerHTML;
   }
 
+  // ---- Subscription page ----
+  function renderSubscription() {
+    if (!userProfile) return;
+    const panel = document.getElementById("subStatusPanel");
+    const grid = document.getElementById("planGrid");
+    if (!panel || !grid) return;
+
+    const createdAt = userProfile.createdAt ? new Date(userProfile.createdAt) : new Date();
+    const trialEnd = addMonths(createdAt, 1);
+    const now = new Date();
+
+    const paidPlan = userProfile.subscriptionPlan; // "monthly" | "yearly" | undefined
+    const paidStart = userProfile.subscriptionStart ? new Date(userProfile.subscriptionStart) : null;
+    let paidEnd = null;
+    if (paidStart && paidPlan === "monthly") paidEnd = addMonths(paidStart, 1);
+    if (paidStart && paidPlan === "yearly") paidEnd = addYears(paidStart, 1);
+
+    let statusLabel, statusClass, statusDetail;
+    if (paidEnd && paidEnd > now) {
+      statusLabel = "Active";
+      statusClass = "active";
+      statusDetail = `${paidPlan === "yearly" ? "Yearly" : "Monthly"} plan — renews ${fmtDateLong(paidEnd)}`;
+    } else if (trialEnd > now) {
+      statusLabel = "Free Trial";
+      statusClass = "trial";
+      statusDetail = `Trial active — valid till ${fmtDateLong(trialEnd)}`;
+    } else {
+      statusLabel = "Expired";
+      statusClass = "";
+      statusDetail = "Your subscription has expired. Choose a plan to continue using the platform.";
+    }
+
+    panel.innerHTML = `
+      <div class="panel-title">Current status</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px">
+        <span class="plan-badge ${statusClass}" style="position:static">${statusLabel}</span>
+      </div>
+      <div style="font-size:14px; color:var(--muted)">${statusDetail}</div>
+      <div style="margin-top:12px; font-size:13px; color:var(--muted); display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px">
+        <div>Trial start<br><b style="color:var(--ink)">${fmtDateLong(createdAt)}</b></div>
+        <div>Trial end<br><b style="color:var(--ink)">${fmtDateLong(trialEnd)}</b></div>
+        ${paidStart ? `<div>Subscription start<br><b style="color:var(--ink)">${fmtDateLong(paidStart)}</b></div>` : ""}
+        ${paidEnd ? `<div>Next renewal<br><b style="color:var(--ink)">${fmtDateLong(paidEnd)}</b></div>` : ""}
+      </div>
+    `;
+
+    const isTrialCurrent = statusLabel === "Free Trial";
+    const isMonthlyCurrent = statusLabel === "Active" && paidPlan === "monthly";
+    const isYearlyCurrent = statusLabel === "Active" && paidPlan === "yearly";
+
+    grid.innerHTML = `
+      <div class="plan-card ${isTrialCurrent ? "current" : ""}">
+        ${isTrialCurrent ? `<span class="plan-badge trial">Current</span>` : ""}
+        <div class="plan-name">Free Trial</div>
+        <div class="plan-price">₹0</div>
+        <ul class="plan-features"><li>First month free</li><li>Full access during trial</li></ul>
+        <button class="plan-btn" disabled style="opacity:0.5">Automatic on sign-up</button>
+      </div>
+      <div class="plan-card ${isMonthlyCurrent ? "current" : ""}">
+        ${isMonthlyCurrent ? `<span class="plan-badge active">Current</span>` : ""}
+        <div class="plan-name">Monthly</div>
+        <div class="plan-price">₹99 <span>/ month</span></div>
+        <ul class="plan-features"><li>Full platform access</li><li>Monthly renewal</li></ul>
+        <button class="plan-btn primary tap" data-plan="monthly">Subscribe Monthly</button>
+      </div>
+      <div class="plan-card ${isYearlyCurrent ? "current" : ""}">
+        ${isYearlyCurrent ? `<span class="plan-badge active">Current</span>` : ""}
+        <div class="plan-name">Yearly</div>
+        <div class="plan-price">₹999 <span>/ year</span></div>
+        <ul class="plan-features"><li>Full platform access</li><li>Annual renewal</li><li>Save vs monthly</li></ul>
+        <button class="plan-btn primary tap" data-plan="yearly">Subscribe Yearly</button>
+      </div>
+    `;
+
+    grid.querySelectorAll("[data-plan]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        alert("Payment collection isn't connected yet — this app doesn't have a payment gateway (e.g. Razorpay) integrated, so real ₹" + (btn.dataset.plan === "yearly" ? "999" : "99") + " payments can't be taken here yet.");
+      });
+    });
+  }
+
+  // ---- Referral page ----
+  function renderReferral() {
+    if (!userProfile) return;
+    const el = document.getElementById("referralCodeVal");
+    if (el) el.textContent = userProfile.referralCode || "—";
+  }
+  document.getElementById("copyReferralBtn").addEventListener("click", () => {
+    const code = userProfile && userProfile.referralCode ? userProfile.referralCode : "";
+    const link = window.location.origin + "/?ref=" + code;
+    navigator.clipboard.writeText(link).then(() => {
+      const btn = document.getElementById("copyReferralBtn");
+      const old = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    });
+  });
+
+  // ---- Auth screen wiring ----
   function authErrorMessage(err) {
     const code = err && err.code ? err.code : "";
     if (code.includes("email-already-in-use")) return "An account with this email already exists — try signing in instead.";
@@ -639,6 +948,7 @@
       : "Don't have an account? <a>Create one</a>";
     document.getElementById("signupFields").style.display = isSignupMode ? "block" : "none";
     document.getElementById("confirmPasswordGroup").style.display = isSignupMode ? "block" : "none";
+    document.getElementById("forgotPasswordRow").style.display = isSignupMode ? "none" : "block";
   }
   document.getElementById("emailToggle").addEventListener("click", (e) => {
     if (e.target.tagName === "A") {
@@ -658,18 +968,41 @@
 
     if (isSignupMode) {
       const confirmPassword = document.getElementById("confirmPasswordInput").value;
-      if (password !== confirmPassword) {
-        setAuthMsg("emailMsg", "Passwords don't match.", "error");
-        return;
-      }
       const firstName = document.getElementById("firstNameInput").value.trim();
       const lastName = document.getElementById("lastNameInput").value.trim();
       const city = document.getElementById("cityInput").value.trim();
       const mobile = document.getElementById("mobileInput").value.trim();
+      const referredBy = document.getElementById("referredByInput").value.trim();
+
+      if (!firstName) { setAuthMsg("emailMsg", "First name is required.", "error"); return; }
+      if (!lastName) { setAuthMsg("emailMsg", "Last name is required.", "error"); return; }
+      if (!city) { setAuthMsg("emailMsg", "City is required.", "error"); return; }
+      if (!/^\+?[0-9]{7,15}$/.test(mobile)) { setAuthMsg("emailMsg", "Enter a valid mobile number.", "error"); return; }
+      if (password.length < 6) { setAuthMsg("emailMsg", "Password should be at least 6 characters.", "error"); return; }
+      if (password !== confirmPassword) { setAuthMsg("emailMsg", "Passwords don't match.", "error"); return; }
+
       try {
+        isRegistering = true;
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "users", cred.user.uid), { firstName, lastName, city, mobile, email });
+        const code = generateReferralCode(firstName);
+        await setDoc(doc(db, "users", cred.user.uid), {
+          firstName, lastName, city, mobile, email,
+          createdAt: new Date().toISOString(),
+          referralCode: code,
+          referredBy: referredBy || null,
+          subscriptionPlan: null,
+          subscriptionStart: null,
+        });
+        await signOut(auth);
+        isRegistering = false;
+
+        document.getElementById("emailForm").reset();
+        isSignupMode = false;
+        updateEmailToggleUI();
+        setAuthMsg("emailMsg", "Account created successfully. Please sign in to continue.", "ok");
+        document.getElementById("emailInput").value = email;
       } catch (err) {
+        isRegistering = false;
         setAuthMsg("emailMsg", authErrorMessage(err), "error");
       }
     } else {
@@ -681,7 +1014,45 @@
     }
   });
 
+  document.querySelectorAll(".pw-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      btn.textContent = showing ? "Show" : "Hide";
+    });
+  });
+
+  // ---- Forgot password ----
+  document.getElementById("forgotPasswordLink").addEventListener("click", () => {
+    document.getElementById("signInPanel").style.display = "none";
+    document.getElementById("resetPanel").style.display = "block";
+    document.getElementById("authHeading").textContent = "Forgot password?";
+  });
+  document.getElementById("backToSignInLink").addEventListener("click", () => {
+    document.getElementById("resetPanel").style.display = "none";
+    document.getElementById("signInPanel").style.display = "block";
+    document.getElementById("authHeading").textContent = "Sign in to your ledger";
+    setAuthMsg("resetMsg", "", "");
+  });
+  document.getElementById("resetForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!auth) return;
+    const email = document.getElementById("resetEmailInput").value.trim();
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err) {
+      // Intentionally don't reveal whether the email exists — same message either way
+    }
+    setAuthMsg("resetMsg", "If the email is registered, you'll receive a password reset link shortly.", "ok");
+  });
+
   render();
 </script>
 </body>
 </html>
+
+
+
+
+<style>.text-input::placeholder { color: #B7AF9C !important; font-style: italic; opacity: 1; }</style>
