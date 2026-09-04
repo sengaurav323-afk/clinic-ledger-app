@@ -1040,7 +1040,7 @@
     if (!auth) return;
     const email = document.getElementById("resetEmailInput").value.trim();
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, email, { url: window.location.origin + "/reset-password.html" });
     } catch (err) {
       // Intentionally don't reveal whether the email exists — same message either way
     }
@@ -1775,4 +1775,82 @@
       alert("Could not delete account — check your password and try again.");
     }
   });
+</script>
+
+<style>
+  #authPageWrap { display: flex; min-height: 100vh; }
+  #authLeftPanel {
+    flex: 1; background: linear-gradient(160deg, #101B33, #1B2A4A);
+    color: #fff; padding: 48px 44px; display: flex; flex-direction: column; justify-content: center;
+    min-width: 320px;
+  }
+  #authLeftPanel .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; margin-bottom: 40px; }
+  #authLeftPanel h2 { font-family: 'Fraunces', serif; font-size: 30px; font-weight: 600; margin: 0 0 12px; line-height: 1.2; }
+  #authLeftPanel .sub { color: #A8B3C7; font-size: 14px; margin-bottom: 34px; max-width: 320px; }
+  .auth-feature { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+  .auth-feature .fi { width: 34px; height: 34px; border-radius: 8px; background: rgba(46,91,255,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .auth-feature .ft { font-weight: 600; font-size: 14px; color: #fff; }
+  .auth-feature .fd { font-size: 12px; color: #A8B3C7; }
+  #authScreen { flex: 1.1; min-width: 340px; padding: 40px 20px; }
+  @media (max-width: 860px) { #authLeftPanel { display: none; } }
+</style>
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const authScreenEl = document.getElementById("authScreen");
+  const wrap = document.createElement("div");
+  wrap.id = "authPageWrap";
+  authScreenEl.parentNode.insertBefore(wrap, authScreenEl);
+  wrap.appendChild(authScreenEl);
+  wrap.insertAdjacentHTML("afterbegin", `
+    <div id="authLeftPanel">
+      <div class="logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg>
+        <span>CLINIC LEDGER</span>
+      </div>
+      <h2>Smart way to<br/>manage your clinic</h2>
+      <div class="sub">Track payments, manage patients, and grow your practice with Clinic Ledger.</div>
+      <div class="auth-feature">
+        <div class="fi">🎁</div>
+        <div><div class="ft">1 Month Free Trial</div><div class="fd">Try all features absolutely free</div></div>
+      </div>
+      <div class="auth-feature">
+        <div class="fi">🛡️</div>
+        <div><div class="ft">Secure &amp; Reliable</div><div class="fd">Your data is safe with us</div></div>
+      </div>
+      <div class="auth-feature">
+        <div class="fi">⚡</div>
+        <div><div class="ft">Simple &amp; Easy to Use</div><div class="fd">Built for clinics and healthcare professionals</div></div>
+      </div>
+    </div>
+  `);
+
+  // Swap heading text/icon to match sign-in vs sign-up vs forgot-password state
+  const heading = document.getElementById("authHeading");
+  const eyebrow = document.querySelector("#authScreen .eyebrow");
+  function refreshHeading() {
+    const inReset = document.getElementById("resetPanel").style.display !== "none";
+    if (inReset) { heading.textContent = "Forgot Password?"; return; }
+    const signupFieldsVisible = document.getElementById("signupFields").style.display !== "none";
+    heading.textContent = signupFieldsVisible ? "Create Your Account" : "Welcome Back!";
+  }
+  new MutationObserver(refreshHeading).observe(document.getElementById("signupFields"), { attributes: true, attributeFilter: ["style"] });
+  new MutationObserver(refreshHeading).observe(document.getElementById("resetPanel"), { attributes: true, attributeFilter: ["style"] });
+  refreshHeading();
+
+  // Real "Remember me" — controls whether sign-in persists after closing the browser
+  const emailForm = document.getElementById("emailForm");
+  const rememberRow = document.createElement("div");
+  rememberRow.style.cssText = "display:flex; align-items:center; gap:6px; margin:-6px 0 14px; font-size:13px; color:var(--muted)";
+  rememberRow.innerHTML = `<input type="checkbox" id="rememberMeInput" checked style="width:15px;height:15px" /><label for="rememberMeInput">Remember me</label>`;
+  const pwField = document.getElementById("passwordInput").closest("form") ? document.getElementById("passwordInput") : null;
+  document.getElementById("confirmPasswordGroup").insertAdjacentElement("afterend", rememberRow);
+
+  const extApp2 = getApp();
+  const extAuth2 = getAuth(extApp2);
+  emailForm.addEventListener("submit", () => {
+    const remember = document.getElementById("rememberMeInput").checked;
+    setPersistence(extAuth2, remember ? browserLocalPersistence : browserSessionPersistence);
+  }, true); // capture phase — runs before the original submit handler
 </script>
