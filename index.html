@@ -1057,3 +1057,722 @@
 
 <style>.text-input::placeholder { color: #B7AF9C !important; font-style: italic; opacity: 1; }</style>
 
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const extApp = getApp();
+  const extAuth = getAuth(extApp);
+  const extDb = getFirestore(extApp);
+  const extClinicCol = collection(extDb, "clinic_entries");
+  const extPatientsCol = collection(extDb, "patients");
+  const extExpensesCol = collection(extDb, "expenses");
+
+  const FEE_TYPES2 = [
+    { key: "counselling", label: "Counselling", color: "#2F5233" },
+    { key: "medicine", label: "Medicine", color: "#5B4A8A" },
+    { key: "referral", label: "Referral", color: "#B8862E" },
+    { key: "other", label: "Other", color: "#5A6B72" },
+  ];
+  const feeMeta2 = (k) => FEE_TYPES2.find((f) => f.key === k) || FEE_TYPES2[3];
+  const fmtMoney2 = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
+  const todayISO2 = () => new Date().toISOString().slice(0, 10);
+  const entryTotal2 = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+  const entryFeeKeys2 = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
+  const fmtDateLong2 = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const fmtDateShort2 = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  const escapeHtml2 = (s) => { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; };
+  function addMonths2(date, n) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + n); return d; }
+  function addYears2(date, n) { const d = new Date(date.getTime()); d.setFullYear(d.getFullYear() + n); return d; }
+  function weekRange2(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const day = (d.getDay() + 6) % 7;
+    const start = new Date(d); start.setDate(d.getDate() - day);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
+  function monthRange2(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
+  const inRange2 = (dateStr, start, end) => dateStr >= start && dateStr <= end;
+
+  let extEntries = [];
+  let extPatientsDocs = [];
+  let extExpenses = [];
+  let extUser = null;
+  let extProfile = null;
+  let editingEntryId = null;
+
+  // ---- Inject new page markup into #main ----
+  const mainEl = document.getElementById("main");
+  mainEl.insertAdjacentHTML("beforeend", `
+    <div id="view-payments-real" style="display:none">
+      <h1 class="page-title">Payments</h1>
+      <p class="page-subtitle">Search, filter, edit, and manage every payment</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px">
+        <input class="text-input" id="paySearch" placeholder="Search patient name" style="max-width:220px; margin-bottom:0" />
+        <select class="text-input" id="payFeeFilter" style="max-width:160px; margin-bottom:0">
+          <option value="">All fee types</option>
+          <option value="counselling">Counselling</option>
+          <option value="medicine">Medicine</option>
+          <option value="referral">Referral</option>
+          <option value="other">Other</option>
+        </select>
+        <select class="text-input" id="payStatusFilter" style="max-width:140px; margin-bottom:0">
+          <option value="">All statuses</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+        </select>
+        <input class="text-input" type="date" id="payFromDate" style="max-width:150px; margin-bottom:0" />
+        <input class="text-input" type="date" id="payToDate" style="max-width:150px; margin-bottom:0" />
+      </div>
+      <div class="list-count" id="payListCount">0 entries</div>
+      <div id="payList"></div>
+    </div>
+
+    <div id="view-patients-real" style="display:none">
+      <h1 class="page-title">Patients</h1>
+      <p class="page-subtitle">Everyone with a payment on record, plus anyone you've added manually</p>
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center">
+        <input class="text-input" id="patientSearch" placeholder="Search patients" style="max-width:240px; margin-bottom:0" />
+        <button class="export-btn tap" id="addPatientBtn">+ Add patient</button>
+      </div>
+      <div id="patientAddForm" class="panel" style="display:none">
+        <label class="field-label">Name</label>
+        <input class="text-input" id="newPatientName" required />
+        <label class="field-label">Mobile</label>
+        <input class="text-input" id="newPatientMobile" />
+        <label class="field-label">City</label>
+        <input class="text-input" id="newPatientCity" />
+        <label class="field-label">Notes</label>
+        <input class="text-input" id="newPatientNotes" />
+        <button id="savePatientBtn" class="submit-btn tap" style="width:auto; padding:10px 24px">Save patient</button>
+      </div>
+      <div id="patientList"></div>
+    </div>
+
+    <div id="view-reports-real" style="display:none">
+      <h1 class="page-title">Reports</h1>
+      <p class="page-subtitle">Received, pending, and fee-type breakdown for any period</p>
+      <div class="segmented" id="repPeriodSeg">
+        <button data-period="day" class="active">Day</button>
+        <button data-period="week">Week</button>
+        <button data-period="month">Month</button>
+      </div>
+      <div class="range-nav" style="margin-bottom:16px">
+        <button class="nav-btn tap" id="repPrevBtn">‹</button>
+        <div class="range-label" id="repRangeLabel">Today</div>
+        <button class="nav-btn tap" id="repNextBtn">›</button>
+      </div>
+      <div class="cards-row">
+        <div class="card"><div class="card-label">Received</div><div class="card-value" id="repReceived" style="color:#2F5233">₹0</div></div>
+        <div class="card"><div class="card-label">Pending</div><div class="card-value" id="repPending">₹0</div></div>
+        <div class="card"><div class="card-label">Transactions</div><div class="card-value" id="repTxnCount">0</div></div>
+      </div>
+      <div class="panel"><div class="panel-title">By fee type</div><div id="repTypeBars"></div></div>
+      <button class="export-btn tap" id="repExportBtn">Export this period as CSV</button>
+    </div>
+
+    <div id="view-expenses-real" style="display:none">
+      <h1 class="page-title">Expenses</h1>
+      <p class="page-subtitle">Track clinic running costs</p>
+      <div class="cards-row">
+        <div class="card"><div class="card-label">Total expenses</div><div class="card-value" id="expTotal">₹0</div></div>
+        <div class="card"><div class="card-label">Today</div><div class="card-value" id="expToday">₹0</div></div>
+        <div class="card"><div class="card-label">This month</div><div class="card-value" id="expMonth">₹0</div></div>
+      </div>
+      <form id="expenseForm" class="panel">
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <input class="text-input" id="expName" placeholder="Expense name" style="flex:1; min-width:160px" required />
+          <select class="text-input" id="expCategory" style="min-width:140px">
+            <option>Rent</option><option>Salaries</option><option>Supplies</option><option>Utilities</option><option>Other</option>
+          </select>
+          <input class="text-input" type="number" min="0" step="0.01" id="expAmount" placeholder="Amount" style="max-width:130px" required />
+          <input class="text-input" type="date" id="expDate" style="max-width:150px" required />
+        </div>
+        <input class="text-input" id="expNotes" placeholder="Notes (optional)" />
+        <button type="submit" class="submit-btn tap" style="width:auto; padding:10px 24px">Add expense</button>
+      </form>
+      <div id="expenseList"></div>
+    </div>
+
+    <div id="view-categories-real" style="display:none">
+      <h1 class="page-title">Categories</h1>
+      <p class="page-subtitle">Fixed payment categories used across the app</p>
+      <div class="plan-grid" id="categoryGrid"></div>
+      <p style="font-size:13px; color:var(--muted); max-width:520px">These four categories are built into how payments are recorded throughout the app. Custom categories aren't supported yet — adding them would mean restructuring how every payment, report, and dashboard chart reads fee data, which hasn't been done.</p>
+    </div>
+
+    <div id="view-settings-real" style="display:none">
+      <h1 class="page-title">Settings</h1>
+      <p class="page-subtitle">Your account, security, and subscription</p>
+      <div class="segmented" id="settingsTabs" style="width:100%; flex-wrap:wrap">
+        <button data-tab="profile" class="active">Profile</button>
+        <button data-tab="security">Security</button>
+        <button data-tab="subscription">Subscription</button>
+        <button data-tab="referral">Referral</button>
+        <button data-tab="data">Data &amp; Privacy</button>
+      </div>
+
+      <div id="settingsTab-profile" class="panel">
+        <label class="field-label">First name</label>
+        <input class="text-input" id="setFirstName" />
+        <label class="field-label">Last name</label>
+        <input class="text-input" id="setLastName" />
+        <label class="field-label">Email (read-only)</label>
+        <input class="text-input" id="setEmail" disabled />
+        <label class="field-label">Mobile number</label>
+        <input class="text-input" id="setMobile" />
+        <label class="field-label">City</label>
+        <input class="text-input" id="setCity" />
+        <button id="saveProfileBtn" class="submit-btn tap" style="width:auto; padding:10px 24px">Save profile</button>
+        <div class="auth-msg" id="profileMsg"></div>
+      </div>
+
+      <div id="settingsTab-security" class="panel" style="display:none">
+        <label class="field-label">Current password</label>
+        <input class="text-input" type="password" id="curPasswordInput" />
+        <label class="field-label">New password</label>
+        <input class="text-input" type="password" id="newPasswordInput" minlength="6" />
+        <label class="field-label">Confirm new password</label>
+        <input class="text-input" type="password" id="confirmNewPasswordInput" minlength="6" />
+        <button id="changePasswordBtn" class="submit-btn tap" style="width:auto; padding:10px 24px">Change password</button>
+        <div class="auth-msg" id="securityMsg"></div>
+      </div>
+
+      <div id="settingsTab-subscription" class="panel" style="display:none">
+        <div id="setSubPanel"></div>
+      </div>
+
+      <div id="settingsTab-referral" class="panel" style="display:none">
+        <div class="referral-box">
+          <div class="referral-code" id="setReferralCode">—</div>
+          <button class="export-btn tap" id="setCopyReferral">Copy link</button>
+        </div>
+      </div>
+
+      <div id="settingsTab-data" class="panel" style="display:none">
+        <button class="export-btn tap" id="setExportCsv" style="margin-bottom:14px">Export all payments (CSV)</button>
+        <div style="border-top:1px solid var(--line); padding-top:14px">
+          <div style="font-weight:600; color:#9C3B2E; margin-bottom:6px">Delete account</div>
+          <p style="font-size:13px; color:var(--muted); max-width:480px">This deletes your sign-in account only. Your payment/patient/expense records stay in the database — that's a deliberate safeguard against accidental data loss, not an oversight.</p>
+          <button id="deleteAccountBtn" class="export-btn tap" style="border-color:#9C3B2E; color:#9C3B2E">Delete account</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  // ---- Edit payment modal ----
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="sheet-overlay" id="editSheetOverlay">
+      <form class="sheet" id="editEntryForm">
+        <h2>Edit payment</h2>
+        <label class="field-label">Patient name</label>
+        <input class="text-input" id="editPatientInput" required />
+        <label class="field-label">Fee types — amounts</label>
+        <div id="editFeeList" style="margin-bottom:14px"></div>
+        <label class="field-label">Date</label>
+        <input class="text-input" type="date" id="editDateInput" required />
+        <label class="field-label">Notes</label>
+        <input class="text-input" id="editNotesInput" />
+        <div class="checkbox-row">
+          <input type="checkbox" id="editPaidInput" style="width:18px;height:18px" />
+          <label for="editPaidInput" style="font-size:14px">Paid</label>
+        </div>
+        <div style="display:flex; gap:10px">
+          <button type="submit" class="submit-btn tap">Save changes</button>
+          <button type="button" id="cancelEditBtn" class="export-btn tap" style="flex-shrink:0">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `);
+
+  // ---- Wire up sidebar nav to show these real pages instead of the generic placeholder ----
+  const realViewMap = {
+    "placeholder-payments": "view-payments-real",
+    "placeholder-patients": "view-patients-real",
+    "placeholder-reports": "view-reports-real",
+    "placeholder-expenses": "view-expenses-real",
+    "placeholder-categories": "view-categories-real",
+    "placeholder-settings": "view-settings-real",
+  };
+  const allRealViews = Object.values(realViewMap);
+  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+    const view = item.dataset.view;
+    if (!realViewMap[view]) return;
+    item.addEventListener("click", () => {
+      document.getElementById("view-placeholder").style.display = "none";
+      allRealViews.forEach((v) => { document.getElementById(v).style.display = "none"; });
+      document.getElementById(realViewMap[view]).style.display = "block";
+      if (view === "placeholder-reports") renderReports();
+      if (view === "placeholder-categories") renderCategories();
+      if (view === "placeholder-settings") renderSettings();
+    });
+  });
+
+  // ---- Auth: independent listener, mirrors the main app's user/profile ----
+  let unsubEntries2 = null, unsubPatients2 = null, unsubExpenses2 = null;
+  onAuthStateChanged(extAuth, async (user) => {
+    extUser = user;
+    if (unsubEntries2) { unsubEntries2(); unsubEntries2 = null; }
+    if (unsubPatients2) { unsubPatients2(); unsubPatients2 = null; }
+    if (unsubExpenses2) { unsubExpenses2(); unsubExpenses2 = null; }
+    if (!user) { extEntries = []; extPatientsDocs = []; extExpenses = []; extProfile = null; return; }
+
+    try {
+      const profSnap = await getDoc(doc(extDb, "users", user.uid));
+      extProfile = profSnap.exists() ? profSnap.data() : {};
+    } catch (e) { extProfile = {}; }
+
+    const qEntries = query(extClinicCol, where("userId", "==", user.uid));
+    unsubEntries2 = onSnapshot(qEntries, (snap) => {
+      extEntries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderPayments();
+      renderPatients();
+      renderReports();
+    });
+
+    const qPatients = query(extPatientsCol, where("userId", "==", user.uid));
+    unsubPatients2 = onSnapshot(qPatients, (snap) => {
+      extPatientsDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderPatients();
+    });
+
+    const qExpenses = query(extExpensesCol, where("userId", "==", user.uid));
+    unsubExpenses2 = onSnapshot(qExpenses, (snap) => {
+      extExpenses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderExpenses();
+    });
+  });
+
+  // =========================================================
+  // PAYMENTS PAGE
+  // =========================================================
+  function renderPayments() {
+    const search = (document.getElementById("paySearch").value || "").toLowerCase();
+    const feeFilter = document.getElementById("payFeeFilter").value;
+    const statusFilter = document.getElementById("payStatusFilter").value;
+    const fromDate = document.getElementById("payFromDate").value;
+    const toDate = document.getElementById("payToDate").value;
+
+    let list = [...extEntries];
+    if (search) list = list.filter((e) => (e.patient || "").toLowerCase().includes(search));
+    if (feeFilter) list = list.filter((e) => entryFeeKeys2(e).includes(feeFilter));
+    if (statusFilter) list = list.filter((e) => e.status === statusFilter);
+    if (fromDate) list = list.filter((e) => e.date >= fromDate);
+    if (toDate) list = list.filter((e) => e.date <= toDate);
+    list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+    document.getElementById("payListCount").textContent = `${list.length} ${list.length === 1 ? "entry" : "entries"}`;
+    const el = document.getElementById("payList");
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state">No payments match these filters.</div>`;
+      return;
+    }
+    el.innerHTML = list.map((e) => {
+      const keys = entryFeeKeys2(e);
+      const total = entryTotal2(e);
+      return `
+        <div class="entry-card">
+          <div class="entry-top">
+            <div style="flex:1 1 auto;min-width:0">
+              <div class="entry-name">${escapeHtml2(e.patient)}</div>
+              <div class="entry-date">${fmtDateShort2(e.date)}</div>
+            </div>
+            <div class="entry-right">
+              <div class="entry-total">${fmtMoney2(total)}</div>
+              <div style="margin-top:4px"><span class="stamp small" style="color:${e.status === "paid" ? "#2F5233" : "#9C3B2E"}">${e.status === "paid" ? "Paid" : "Pending"}</span></div>
+            </div>
+            <button class="export-btn tap" data-action="edit" data-id="${e.id}" style="padding:5px 10px; font-size:11px">Edit</button>
+            <button class="del-btn tap" data-action="pdelete" data-id="${e.id}" aria-label="Delete">✕</button>
+          </div>
+          <div class="fee-tags">
+            ${keys.map((k) => `<span class="fee-tag"><span class="fee-dot" style="background:${feeMeta2(k).color}"></span><span class="fee-tag-label">${feeMeta2(k).label}</span><span class="fee-tag-amt">${fmtMoney2(e.fees[k])}</span></span>`).join("")}
+          </div>
+          ${e.notes ? `<div class="entry-notes">${escapeHtml2(e.notes)}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+
+    el.querySelectorAll("[data-action='pdelete']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (confirm("Delete this entry? This can't be undone.")) {
+          await deleteDoc(doc(extDb, "clinic_entries", btn.dataset.id));
+        }
+      });
+    });
+    el.querySelectorAll("[data-action='edit']").forEach((btn) => {
+      btn.addEventListener("click", () => openEditModal(btn.dataset.id));
+    });
+  }
+  ["paySearch", "payFeeFilter", "payStatusFilter", "payFromDate", "payToDate"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", renderPayments);
+  });
+
+  function openEditModal(id) {
+    const entry = extEntries.find((e) => e.id === id);
+    if (!entry) return;
+    editingEntryId = id;
+    document.getElementById("editPatientInput").value = entry.patient || "";
+    document.getElementById("editDateInput").value = entry.date || todayISO2();
+    document.getElementById("editNotesInput").value = entry.notes || "";
+    document.getElementById("editPaidInput").checked = entry.status === "paid";
+    const feeListEl = document.getElementById("editFeeList");
+    feeListEl.innerHTML = FEE_TYPES2.map((f) => {
+      const val = (entry.fees || {})[f.key] || "";
+      return `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+          <span style="width:90px; font-size:13px">${f.label}</span>
+          <input type="number" min="0" step="0.01" class="text-input" style="margin-bottom:0" data-editkey="${f.key}" value="${val}" placeholder="0" />
+        </div>
+      `;
+    }).join("");
+    document.getElementById("editSheetOverlay").classList.add("open");
+  }
+  document.getElementById("cancelEditBtn").addEventListener("click", () => {
+    document.getElementById("editSheetOverlay").classList.remove("open");
+  });
+  document.getElementById("editSheetOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "editSheetOverlay") document.getElementById("editSheetOverlay").classList.remove("open");
+  });
+  document.getElementById("editEntryForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!editingEntryId) return;
+    const fees = {};
+    document.querySelectorAll("[data-editkey]").forEach((input) => {
+      const v = parseFloat(input.value);
+      if (v > 0) fees[input.dataset.editkey] = v;
+    });
+    const paid = document.getElementById("editPaidInput").checked;
+    await updateDoc(doc(extDb, "clinic_entries", editingEntryId), {
+      patient: document.getElementById("editPatientInput").value.trim(),
+      date: document.getElementById("editDateInput").value,
+      notes: document.getElementById("editNotesInput").value.trim(),
+      fees,
+      status: paid ? "paid" : "pending",
+      paidAt: paid ? todayISO2() : null,
+    });
+    document.getElementById("editSheetOverlay").classList.remove("open");
+  });
+
+  // =========================================================
+  // PATIENTS PAGE
+  // =========================================================
+  function renderPatients() {
+    const search = (document.getElementById("patientSearch").value || "").toLowerCase();
+
+    const byName = {};
+    extEntries.forEach((e) => {
+      const key = (e.patient || "").trim().toLowerCase();
+      if (!key) return;
+      if (!byName[key]) byName[key] = { name: e.patient, paid: 0, pending: 0, count: 0, lastDate: e.date };
+      const total = entryTotal2(e);
+      if (e.status === "paid") byName[key].paid += total; else byName[key].pending += total;
+      byName[key].count += 1;
+      if (e.date > byName[key].lastDate) byName[key].lastDate = e.date;
+    });
+    extPatientsDocs.forEach((p) => {
+      const key = (p.name || "").trim().toLowerCase();
+      if (!key) return;
+      if (!byName[key]) byName[key] = { name: p.name, paid: 0, pending: 0, count: 0, lastDate: null, mobile: p.mobile, city: p.city, notes: p.notes };
+      else { byName[key].mobile = p.mobile; byName[key].city = p.city; byName[key].notes = p.notes; }
+    });
+
+    let list = Object.values(byName);
+    if (search) list = list.filter((p) => p.name.toLowerCase().includes(search));
+    list.sort((a, b) => a.name.localeCompare(b.name));
+
+    const el = document.getElementById("patientList");
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state">No patients yet.</div>`;
+      return;
+    }
+    el.innerHTML = list.map((p) => `
+      <div class="entry-card">
+        <div class="entry-top">
+          <div style="flex:1 1 auto;min-width:0">
+            <div class="entry-name">${escapeHtml2(p.name)}</div>
+            <div class="entry-date">${p.count} ${p.count === 1 ? "visit" : "visits"}${p.lastDate ? " · last " + fmtDateShort2(p.lastDate) : ""}${p.mobile ? " · " + escapeHtml2(p.mobile) : ""}${p.city ? " · " + escapeHtml2(p.city) : ""}</div>
+          </div>
+          <div class="entry-right">
+            <div class="entry-total" style="color:#2F5233">${fmtMoney2(p.paid)}</div>
+            ${p.pending > 0 ? `<div style="font-size:11px; color:#B8862E; margin-top:2px">${fmtMoney2(p.pending)} pending</div>` : ""}
+          </div>
+        </div>
+        ${p.notes ? `<div class="entry-notes">${escapeHtml2(p.notes)}</div>` : ""}
+      </div>
+    `).join("");
+  }
+  document.getElementById("patientSearch").addEventListener("input", renderPatients);
+  document.getElementById("addPatientBtn").addEventListener("click", () => {
+    const form = document.getElementById("patientAddForm");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+  });
+  document.getElementById("savePatientBtn").addEventListener("click", async () => {
+    const name = document.getElementById("newPatientName").value.trim();
+    if (!name || !extUser) return;
+    await addDoc(extPatientsCol, {
+      userId: extUser.uid,
+      name,
+      mobile: document.getElementById("newPatientMobile").value.trim(),
+      city: document.getElementById("newPatientCity").value.trim(),
+      notes: document.getElementById("newPatientNotes").value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    document.getElementById("newPatientName").value = "";
+    document.getElementById("newPatientMobile").value = "";
+    document.getElementById("newPatientCity").value = "";
+    document.getElementById("newPatientNotes").value = "";
+    document.getElementById("patientAddForm").style.display = "none";
+  });
+
+  // =========================================================
+  // REPORTS PAGE
+  // =========================================================
+  let repPeriod = "day";
+  let repAnchor = todayISO2();
+  function repRange() {
+    if (repPeriod === "day") return { start: repAnchor, end: repAnchor };
+    if (repPeriod === "week") return weekRange2(repAnchor);
+    return monthRange2(repAnchor);
+  }
+  function repLabel(range) {
+    if (repPeriod === "day") return repAnchor === todayISO2() ? "Today" : fmtDateShort2(repAnchor);
+    if (repPeriod === "week") return `${fmtDateShort2(range.start)} – ${fmtDateShort2(range.end)}`;
+    const d = new Date(repAnchor + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  }
+  function renderReports() {
+    const range = repRange();
+    document.getElementById("repRangeLabel").textContent = repLabel(range);
+    const list = extEntries.filter((e) => inRange2(e.date, range.start, range.end));
+    let received = 0, pending = 0;
+    const byType = { counselling: 0, medicine: 0, referral: 0, other: 0 };
+    list.forEach((e) => {
+      const total = entryTotal2(e);
+      if (e.status === "paid") {
+        received += total;
+        Object.entries(e.fees || {}).forEach(([k, v]) => { byType[k] = (byType[k] || 0) + v; });
+      } else pending += total;
+    });
+    document.getElementById("repReceived").textContent = fmtMoney2(received);
+    document.getElementById("repPending").textContent = fmtMoney2(pending);
+    document.getElementById("repTxnCount").textContent = list.length;
+    const maxVal = Math.max(1, ...Object.values(byType));
+    document.getElementById("repTypeBars").innerHTML = FEE_TYPES2.map((f) => `
+      <div class="bar-row">
+        <div class="top"><span>${f.label}</span><span style="font-family:'IBM Plex Mono',monospace;font-weight:600">${fmtMoney2(byType[f.key])}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(byType[f.key] / maxVal) * 100}%;background:${f.color}"></div></div>
+      </div>
+    `).join("");
+  }
+  document.querySelectorAll("#repPeriodSeg button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      repPeriod = btn.dataset.period;
+      document.querySelectorAll("#repPeriodSeg button").forEach((b) => b.classList.toggle("active", b === btn));
+      renderReports();
+    });
+  });
+  document.getElementById("repPrevBtn").addEventListener("click", () => { shiftRep(-1); });
+  document.getElementById("repNextBtn").addEventListener("click", () => { shiftRep(1); });
+  function shiftRep(dir) {
+    const d = new Date(repAnchor + "T00:00:00");
+    if (repPeriod === "day") d.setDate(d.getDate() + dir);
+    else if (repPeriod === "week") d.setDate(d.getDate() + dir * 7);
+    else d.setMonth(d.getMonth() + dir);
+    repAnchor = d.toISOString().slice(0, 10);
+    renderReports();
+  }
+  document.getElementById("repExportBtn").addEventListener("click", () => {
+    const range = repRange();
+    const list = extEntries.filter((e) => inRange2(e.date, range.start, range.end));
+    const header = ["Date", "Patient", "Counselling", "Medicine", "Referral", "Other", "Total", "Status", "Notes"];
+    const rows = list.map((e) => {
+      const f = e.fees || {};
+      const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      return [e.date, esc(e.patient), f.counselling || "", f.medicine || "", f.referral || "", f.other || "", entryTotal2(e), e.status, esc(e.notes || "")].join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `report-${repAnchor}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // =========================================================
+  // EXPENSES PAGE
+  // =========================================================
+  document.getElementById("expDate").value = todayISO2();
+  function renderExpenses() {
+    let total = 0, todayTotal = 0, monthTotal = 0;
+    const today = todayISO2();
+    const monthPrefix = today.slice(0, 7);
+    const sorted = [...extExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
+    sorted.forEach((x) => {
+      total += Number(x.amount) || 0;
+      if (x.date === today) todayTotal += Number(x.amount) || 0;
+      if ((x.date || "").startsWith(monthPrefix)) monthTotal += Number(x.amount) || 0;
+    });
+    document.getElementById("expTotal").textContent = fmtMoney2(total);
+    document.getElementById("expToday").textContent = fmtMoney2(todayTotal);
+    document.getElementById("expMonth").textContent = fmtMoney2(monthTotal);
+
+    const el = document.getElementById("expenseList");
+    if (sorted.length === 0) {
+      el.innerHTML = `<div class="empty-state">No expenses logged yet.</div>`;
+      return;
+    }
+    el.innerHTML = sorted.map((x) => `
+      <div class="entry-card">
+        <div class="entry-top">
+          <div style="flex:1 1 auto;min-width:0">
+            <div class="entry-name">${escapeHtml2(x.name)}</div>
+            <div class="entry-date">${fmtDateShort2(x.date)} · ${escapeHtml2(x.category)}</div>
+          </div>
+          <div class="entry-right"><div class="entry-total">${fmtMoney2(x.amount)}</div></div>
+          <button class="del-btn tap" data-action="edelete" data-id="${x.id}" aria-label="Delete">✕</button>
+        </div>
+        ${x.notes ? `<div class="entry-notes">${escapeHtml2(x.notes)}</div>` : ""}
+      </div>
+    `).join("");
+    el.querySelectorAll("[data-action='edelete']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (confirm("Delete this expense?")) await deleteDoc(doc(extDb, "expenses", btn.dataset.id));
+      });
+    });
+  }
+  document.getElementById("expenseForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!extUser) return;
+    await addDoc(extExpensesCol, {
+      userId: extUser.uid,
+      name: document.getElementById("expName").value.trim(),
+      category: document.getElementById("expCategory").value,
+      amount: parseFloat(document.getElementById("expAmount").value) || 0,
+      date: document.getElementById("expDate").value,
+      notes: document.getElementById("expNotes").value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    document.getElementById("expenseForm").reset();
+    document.getElementById("expDate").value = todayISO2();
+  });
+
+  // =========================================================
+  // CATEGORIES PAGE
+  // =========================================================
+  function renderCategories() {
+    const byType = { counselling: 0, medicine: 0, referral: 0, other: 0 };
+    extEntries.forEach((e) => {
+      if (e.status === "paid") Object.entries(e.fees || {}).forEach(([k, v]) => { byType[k] = (byType[k] || 0) + v; });
+    });
+    document.getElementById("categoryGrid").innerHTML = FEE_TYPES2.map((f) => `
+      <div class="plan-card">
+        <div class="plan-name" style="color:${f.color}">${f.label}</div>
+        <div class="plan-price">${fmtMoney2(byType[f.key])}</div>
+        <div style="font-size:12px; color:var(--muted)">total received all-time</div>
+      </div>
+    `).join("");
+  }
+
+  // =========================================================
+  // SETTINGS PAGE
+  // =========================================================
+  document.querySelectorAll("#settingsTabs button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#settingsTabs button").forEach((b) => b.classList.toggle("active", b === btn));
+      ["profile", "security", "subscription", "referral", "data"].forEach((t) => {
+        document.getElementById("settingsTab-" + t).style.display = t === btn.dataset.tab ? "block" : "none";
+      });
+    });
+  });
+  function renderSettings() {
+    if (!extProfile) return;
+    document.getElementById("setFirstName").value = extProfile.firstName || "";
+    document.getElementById("setLastName").value = extProfile.lastName || "";
+    document.getElementById("setEmail").value = extProfile.email || (extUser ? extUser.email : "");
+    document.getElementById("setMobile").value = extProfile.mobile || "";
+    document.getElementById("setCity").value = extProfile.city || "";
+    document.getElementById("setReferralCode").textContent = extProfile.referralCode || "—";
+
+    const createdAt = extProfile.createdAt ? new Date(extProfile.createdAt) : new Date();
+    const trialEnd = addMonths2(createdAt, 1);
+    const now = new Date();
+    const paidPlan = extProfile.subscriptionPlan;
+    const paidStart = extProfile.subscriptionStart ? new Date(extProfile.subscriptionStart) : null;
+    let paidEnd = null;
+    if (paidStart && paidPlan === "monthly") paidEnd = addMonths2(paidStart, 1);
+    if (paidStart && paidPlan === "yearly") paidEnd = addYears2(paidStart, 1);
+    let statusLabel, statusDetail;
+    if (paidEnd && paidEnd > now) { statusLabel = "Active"; statusDetail = `${paidPlan} plan, renews ${fmtDateLong2(paidEnd)}`; }
+    else if (trialEnd > now) { statusLabel = "Free Trial"; statusDetail = `Valid till ${fmtDateLong2(trialEnd)}`; }
+    else { statusLabel = "Expired"; statusDetail = "Choose a plan to continue."; }
+    document.getElementById("setSubPanel").innerHTML = `
+      <div style="font-weight:600; margin-bottom:6px">${statusLabel}</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:10px">${statusDetail}</div>
+      <div style="font-size:13px; color:var(--muted)">Trial: ${fmtDateLong2(createdAt)} → ${fmtDateLong2(trialEnd)}</div>
+    `;
+  }
+  document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+    if (!extUser) return;
+    await updateDoc(doc(extDb, "users", extUser.uid), {
+      firstName: document.getElementById("setFirstName").value.trim(),
+      lastName: document.getElementById("setLastName").value.trim(),
+      mobile: document.getElementById("setMobile").value.trim(),
+      city: document.getElementById("setCity").value.trim(),
+    });
+    const msg = document.getElementById("profileMsg");
+    msg.textContent = "Saved.";
+    msg.className = "auth-msg ok";
+    setTimeout(() => { msg.textContent = ""; }, 2000);
+  });
+  document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+    const msg = document.getElementById("securityMsg");
+    msg.className = "auth-msg";
+    const cur = document.getElementById("curPasswordInput").value;
+    const next = document.getElementById("newPasswordInput").value;
+    const confirmNext = document.getElementById("confirmNewPasswordInput").value;
+    if (next.length < 6) { msg.textContent = "New password must be at least 6 characters."; msg.className = "auth-msg error"; return; }
+    if (next !== confirmNext) { msg.textContent = "Passwords don't match."; msg.className = "auth-msg error"; return; }
+    try {
+      const cred = EmailAuthProvider.credential(extUser.email, cur);
+      await reauthenticateWithCredential(extUser, cred);
+      await updatePassword(extUser, next);
+      msg.textContent = "Password changed successfully.";
+      msg.className = "auth-msg ok";
+      document.getElementById("curPasswordInput").value = "";
+      document.getElementById("newPasswordInput").value = "";
+      document.getElementById("confirmNewPasswordInput").value = "";
+    } catch (err) {
+      msg.textContent = "Could not change password — check your current password is correct.";
+      msg.className = "auth-msg error";
+    }
+  });
+  document.getElementById("setCopyReferral").addEventListener("click", () => {
+    const code = extProfile && extProfile.referralCode ? extProfile.referralCode : "";
+    navigator.clipboard.writeText(window.location.origin + "/?ref=" + code);
+    const btn = document.getElementById("setCopyReferral");
+    const old = btn.textContent; btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  });
+  document.getElementById("setExportCsv").addEventListener("click", () => {
+    document.getElementById("exportBtn").click();
+  });
+  document.getElementById("deleteAccountBtn").addEventListener("click", async () => {
+    if (!confirm("Delete your account? You will be signed out. Your data stays in the database unless removed separately.")) return;
+    const pwd = prompt("Re-enter your password to confirm:");
+    if (!pwd) return;
+    try {
+      const cred = EmailAuthProvider.credential(extUser.email, pwd);
+      await reauthenticateWithCredential(extUser, cred);
+      await deleteUser(extUser);
+    } catch (err) {
+      alert("Could not delete account — check your password and try again.");
+    }
+  });
+</script>
