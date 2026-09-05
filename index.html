@@ -2053,3 +2053,14 @@
     document.getElementById("agreeTermsInput").checked = false;
   });
 </script>
+<script>
+  ["firstNameInput", "lastNameInput", "cityInput", "mobileInput", "emailInput"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute("readonly", "readonly");
+    el.setAttribute("name", "fld_" + Math.random().toString(36).slice(2, 10));
+    const enableTyping = () => { el.removeAttribute("readonly"); };
+    el.addEventListener("focus", enableTyping);
+    el.addEventListener("touchstart", enableTyping);
+  });
+</script>
