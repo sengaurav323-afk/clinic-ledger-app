@@ -1998,3 +1998,58 @@
     syncWrapVisibility();
   }
 </script>
+<script>
+  document.getElementById("firstNameInput").placeholder = "First name";
+  document.getElementById("lastNameInput").placeholder = "Last name";
+  document.getElementById("cityInput").placeholder = "City";
+  document.getElementById("mobileInput").placeholder = "Mobile number";
+  document.getElementById("emailInput").placeholder = "Email address";
+
+  document.getElementById("firstNameInput").autocomplete = "off";
+  document.getElementById("lastNameInput").autocomplete = "off";
+  document.getElementById("cityInput").autocomplete = "off";
+  document.getElementById("mobileInput").autocomplete = "off";
+  document.getElementById("emailInput").autocomplete = "off";
+  document.getElementById("passwordInput").autocomplete = "new-password";
+  document.getElementById("confirmPasswordInput").autocomplete = "new-password";
+
+  const signupFieldsEl = document.getElementById("signupFields");
+  const subtitleEl = document.createElement("p");
+  subtitleEl.id = "signupSubtitle";
+  subtitleEl.style.cssText = "text-align:center; color:var(--muted); font-size:13px; margin:-16px 0 20px; display:none";
+  subtitleEl.textContent = "Sign up and get 1 month free access";
+  document.getElementById("authHeading").insertAdjacentElement("afterend", subtitleEl);
+
+  const termsRow = document.createElement("div");
+  termsRow.id = "termsRow";
+  termsRow.style.cssText = "display:flex; align-items:flex-start; gap:8px; margin-bottom:16px; font-size:13px; color:var(--muted)";
+  termsRow.innerHTML = `<input type="checkbox" id="agreeTermsInput" style="width:16px;height:16px; margin-top:2px" required />
+    <label for="agreeTermsInput">I agree to the Terms &amp; Conditions and Privacy Policy</label>`;
+  document.getElementById("confirmPasswordGroup").insertAdjacentElement("afterend", termsRow);
+
+  function syncSignupExtras() {
+    const isSignup = signupFieldsEl.style.display !== "none";
+    subtitleEl.style.display = isSignup ? "block" : "none";
+    termsRow.style.display = isSignup ? "flex" : "none";
+  }
+  new MutationObserver(syncSignupExtras).observe(signupFieldsEl, { attributes: true, attributeFilter: ["style"] });
+  syncSignupExtras();
+
+  document.getElementById("emailForm").addEventListener("submit", (e) => {
+    const isSignup = signupFieldsEl.style.display !== "none";
+    if (isSignup && !document.getElementById("agreeTermsInput").checked) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      alert("Please agree to the Terms & Conditions and Privacy Policy to continue.");
+    }
+  }, true);
+
+  document.getElementById("emailToggle").addEventListener("click", (e) => {
+    if (e.target.tagName !== "A") return;
+    ["firstNameInput", "lastNameInput", "cityInput", "mobileInput", "referredByInput",
+     "emailInput", "passwordInput", "confirmPasswordInput"].forEach((id) => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("agreeTermsInput").checked = false;
+  });
+</script>
