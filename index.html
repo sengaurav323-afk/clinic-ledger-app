@@ -1041,8 +1041,9 @@
     const email = document.getElementById("resetEmailInput").value.trim();
     try {
       await sendPasswordResetEmail(auth, email, { url: window.location.origin + "/reset-password.html" });
+      console.log("[Clinic Ledger] Password reset request submitted successfully to Firebase for:", email);
     } catch (err) {
-      // Intentionally don't reveal whether the email exists — same message either way
+      console.error("[Clinic Ledger] Password reset request FAILED:", err.code, err.message);
     }
     setAuthMsg("resetMsg", "If the email is registered, you'll receive a password reset link shortly.", "ok");
   });
@@ -1854,5 +1855,6 @@
     setPersistence(extAuth2, remember ? browserLocalPersistence : browserSessionPersistence);
   }, true); // capture phase — runs before the original submit handler
 </script>
+
 
 
