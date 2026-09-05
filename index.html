@@ -2064,3 +2064,49 @@
     el.addEventListener("touchstart", enableTyping);
   });
 </script>
+<style>
+  #authPageWrap.signin-mode { justify-content: center; align-items: center; }
+  #authPageWrap.signin-mode #authLeftPanel { display: none !important; }
+  #authPageWrap.signin-mode #authScreen { flex: none; width: 100%; max-width: 460px; }
+  .signin-logo { display: flex; justify-content: center; margin-bottom: 18px; }
+  .signin-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 13px; }
+  .signin-divider::before, .signin-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .back-to-signup-btn { background: #F0F2F5; border-radius: 8px; padding: 13px 0; }
+  .back-to-signup-btn a { display: block; width: 100%; text-align: center; color: var(--ink) !important; font-weight: 700; font-size: 15px; text-decoration: none !important; }
+  .security-footer { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: 13px; margin-top: 22px; }
+</style>
+<script>
+  const authWrapEl2 = document.getElementById("authPageWrap");
+  const emailToggleEl = document.getElementById("emailToggle");
+  const signupFieldsEl2 = document.getElementById("signupFields");
+
+  const signinLogo = document.createElement("div");
+  signinLogo.className = "signin-logo";
+  signinLogo.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg>`;
+  document.getElementById("authHeading").insertAdjacentElement("beforebegin", signinLogo);
+
+  const securityFooter = document.createElement("div");
+  securityFooter.className = "security-footer";
+  securityFooter.innerHTML = `🔒 Your data is protected and secure`;
+  document.getElementById("signInPanel").appendChild(securityFooter);
+
+  emailToggleEl.insertAdjacentHTML("beforebegin", `<div class="signin-divider" id="signinDivider">or</div>`);
+  const dividerEl = document.getElementById("signinDivider");
+
+  function syncSigninLayout() {
+    const isSignup = signupFieldsEl2.style.display !== "none";
+    authWrapEl2.classList.toggle("signin-mode", !isSignup);
+    signinLogo.style.display = isSignup ? "none" : "flex";
+    securityFooter.style.display = isSignup ? "none" : "flex";
+    dividerEl.style.display = isSignup ? "none" : "flex";
+    if (isSignup) {
+      emailToggleEl.className = "auth-toggle";
+      emailToggleEl.innerHTML = 'Already have an account? <a>Sign In</a>';
+    } else {
+      emailToggleEl.className = "back-to-signup-btn";
+      emailToggleEl.innerHTML = '<a>← Back to Sign Up</a>';
+    }
+  }
+  new MutationObserver(syncSigninLayout).observe(signupFieldsEl2, { attributes: true, attributeFilter: ["style"] });
+  syncSigninLayout();
+</script>
