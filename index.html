@@ -1984,3 +1984,17 @@
     } catch (e) {}
   });
 </script>
+<style>
+  #authScreen { max-width: none !important; }
+</style>
+<script>
+  const _authScreenEl = document.getElementById("authScreen");
+  const _authWrap = document.getElementById("authPageWrap");
+  if (_authScreenEl && _authWrap) {
+    const syncWrapVisibility = () => {
+      _authWrap.style.display = _authScreenEl.style.display === "none" ? "none" : "flex";
+    };
+    new MutationObserver(syncWrapVisibility).observe(_authScreenEl, { attributes: true, attributeFilter: ["style"] });
+    syncWrapVisibility();
+  }
+</script>
