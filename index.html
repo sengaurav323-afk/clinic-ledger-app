@@ -1780,10 +1780,11 @@
 
 <style>
   #authPageWrap { display: flex; min-height: 100vh; }
+  #authPageWrap:has(#authScreen[style*="display: none"]) { display: none !important; }
   #authLeftPanel {
-    flex: 1; width: 50%; background: linear-gradient(160deg, #101B33, #1B2A4A);
+    flex: 0 0 50%; width: 50%; background: linear-gradient(160deg, #101B33, #1B2A4A);
     color: #fff; padding: 48px 44px; display: flex; flex-direction: column; justify-content: center;
-    min-width: 320px;
+    box-sizing: border-box;
   }
   #authLeftPanel .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; margin-bottom: 40px; }
   #authLeftPanel h2 { font-family: 'Fraunces', serif; font-size: 30px; font-weight: 600; margin: 0 0 12px; line-height: 1.2; }
@@ -1792,8 +1793,11 @@
   .auth-feature .fi { width: 34px; height: 34px; border-radius: 8px; background: rgba(46,91,255,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .auth-feature .ft { font-weight: 600; font-size: 14px; color: #fff; }
   .auth-feature .fd { font-size: 12px; color: #A8B3C7; }
-  #authScreen { flex: 1; width: 50%; min-width: 340px; padding: 40px 20px; display: flex; align-items: center; justify-content: center; }
-  @media (max-width: 860px) { #authLeftPanel { display: none; } }
+  #authScreen { flex: 0 0 50%; width: 50%; box-sizing: border-box; padding: 40px 20px; display: flex; align-items: center; justify-content: center; }
+  @media (max-width: 860px) {
+    #authLeftPanel { display: none; }
+    #authScreen { flex: 0 0 100%; width: 100%; }
+  }
 </style>
 <script type="module">
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1858,3 +1862,125 @@
 
 
 
+
+
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+  const ppApp = getApp();
+  const ppAuth = getAuth(ppApp);
+  const ppDb = getFirestore(ppApp);
+  const ppStorage = getStorage(ppApp);
+  let ppUser = null;
+
+  function renderAvatar(photoURL, initials) {
+    const el = document.getElementById("avatarInitials");
+    if (!el) return;
+    if (photoURL) {
+      el.innerHTML = `<img src="${photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />`;
+    } else {
+      el.textContent = initials || "?";
+    }
+  }
+
+  function injectControls() {
+    const panel = document.getElementById("settingsTab-profile");
+    if (!panel || document.getElementById("photoUploadRow")) return;
+    panel.insertAdjacentHTML("afterbegin", `
+      <div id="photoUploadRow" style="display:flex; align-items:center; gap:16px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--line)">
+        <div id="photoPreview" style="width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; overflow:hidden; flex-shrink:0">?</div>
+        <div>
+          <input type="file" id="photoFileInput" accept="image/png, image/jpeg" style="display:none" />
+          <button type="button" id="choosePhotoBtn" class="export-btn tap" style="margin-right:8px">Change photo</button>
+          <button type="button" id="removePhotoBtn" class="export-btn tap" style="border-color:#9C3B2E; color:#9C3B2E">Remove</button>
+          <div style="font-size:12px; color:var(--muted); margin-top:6px">JPG or PNG, up to 3MB</div>
+          <div class="auth-msg" id="photoMsg"></div>
+        </div>
+      </div>
+    `);
+    document.getElementById("choosePhotoBtn").addEventListener("click", () => {
+      document.getElementById("photoFileInput").click();
+    });
+    document.getElementById("photoFileInput").addEventListener("change", handleFileSelect);
+    document.getElementById("removePhotoBtn").addEventListener("click", handleRemove);
+  }
+  const injectTimer = setInterval(() => {
+    if (document.getElementById("settingsTab-profile")) {
+      injectControls();
+      clearInterval(injectTimer);
+    }
+  }, 300);
+
+  async function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file || !ppUser) return;
+    const msg = document.getElementById("photoMsg");
+    msg.className = "auth-msg";
+    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+      msg.textContent = "Please choose a JPG or PNG image.";
+      msg.className = "auth-msg error";
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      msg.textContent = "Image must be under 3MB.";
+      msg.className = "auth-msg error";
+      return;
+    }
+    msg.textContent = "Uploading…";
+    try {
+      const ext = file.type === "image/png" ? "png" : "jpg";
+      const fileRef = ref(ppStorage, `profile-photos/${ppUser.uid}/photo.${ext}`);
+      await uploadBytes(fileRef, file);
+      const url = await getDownloadURL(fileRef);
+      await updateDoc(doc(ppDb, "users", ppUser.uid), { photoURL: url });
+      const preview = document.getElementById("photoPreview");
+      if (preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" />`;
+      renderAvatar(url, null);
+      msg.textContent = "Photo updated.";
+      msg.className = "auth-msg ok";
+    } catch (err) {
+      msg.textContent = "Could not upload photo — please try again.";
+      msg.className = "auth-msg error";
+    }
+  }
+
+  async function handleRemove() {
+    if (!ppUser) return;
+    const msg = document.getElementById("photoMsg");
+    try {
+      await deleteObject(ref(ppStorage, `profile-photos/${ppUser.uid}/photo.jpg`)).catch(() => {});
+      await deleteObject(ref(ppStorage, `profile-photos/${ppUser.uid}/photo.png`)).catch(() => {});
+      await updateDoc(doc(ppDb, "users", ppUser.uid), { photoURL: null });
+      const preview = document.getElementById("photoPreview");
+      const firstName = (document.getElementById("setFirstName") || {}).value || "";
+      const lastName = (document.getElementById("setLastName") || {}).value || "";
+      const initials = ((firstName[0] || "") + (lastName[0] || "")).toUpperCase() || "?";
+      if (preview) preview.textContent = initials;
+      renderAvatar(null, initials);
+      msg.textContent = "Photo removed.";
+      msg.className = "auth-msg ok";
+    } catch (err) {
+      msg.textContent = "Could not remove photo — please try again.";
+      msg.className = "auth-msg error";
+    }
+  }
+
+  onAuthStateChanged(ppAuth, async (user) => {
+    ppUser = user;
+    if (!user) return;
+    try {
+      const snap = await getDoc(doc(ppDb, "users", user.uid));
+      const data = snap.exists() ? snap.data() : {};
+      const initials = ((data.firstName || "")[0] || "").toUpperCase() + ((data.lastName || "")[0] || "").toUpperCase();
+      renderAvatar(data.photoURL, initials || "?");
+      const preview = document.getElementById("photoPreview");
+      if (preview) {
+        if (data.photoURL) preview.innerHTML = `<img src="${data.photoURL}" style="width:100%;height:100%;object-fit:cover" />`;
+        else preview.textContent = initials || "?";
+      }
+    } catch (e) {}
+  });
+</script>
