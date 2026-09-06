@@ -1006,10 +1006,18 @@
         setAuthMsg("emailMsg", authErrorMessage(err), "error");
       }
     } else {
+      const btn = document.getElementById("emailSubmitBtn");
+      btn.disabled = true;
+      btn.textContent = "Signing in...";
       try {
         await signInWithEmailAndPassword(auth, email, password);
+        console.log("[Clinic Ledger] Sign-in successful for:", email);
       } catch (err) {
+        console.error("[Clinic Ledger] Sign-in FAILED:", err.code, err.message);
         setAuthMsg("emailMsg", authErrorMessage(err), "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign in";
       }
     }
   });
@@ -2023,7 +2031,7 @@
   const termsRow = document.createElement("div");
   termsRow.id = "termsRow";
   termsRow.style.cssText = "display:flex; align-items:flex-start; gap:8px; margin-bottom:16px; font-size:13px; color:var(--muted)";
-  termsRow.innerHTML = `<input type="checkbox" id="agreeTermsInput" style="width:16px;height:16px; margin-top:2px" required />
+  termsRow.innerHTML = `<input type="checkbox" id="agreeTermsInput" style="width:16px;height:16px; margin-top:2px" />
     <label for="agreeTermsInput">I agree to the Terms &amp; Conditions and Privacy Policy</label>`;
   document.getElementById("confirmPasswordGroup").insertAdjacentElement("afterend", termsRow);
 
@@ -2110,3 +2118,5 @@
   new MutationObserver(syncSigninLayout).observe(signupFieldsEl2, { attributes: true, attributeFilter: ["style"] });
   syncSigninLayout();
 </script>
+
+
