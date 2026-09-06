@@ -2139,3 +2139,33 @@
   #authLeftPanel .sub { margin-bottom: 20px; }
   .auth-feature { margin-bottom: 12px; }
 </style>
+<style>
+  #authPageWrap:not(.signin-mode) #authScreen {
+    justify-content: flex-start !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-top: 20px;
+  }
+  #authPageWrap:not(.signin-mode) { align-items: stretch; min-height: 100vh; }
+
+  .text-input { padding: 7px 12px; margin-bottom: 6px; font-size: 13px; }
+  label.field-label { margin-bottom: 1px; font-size: 10px; }
+  #authScreen h1 { font-size: 19px; margin-bottom: 2px; }
+  #signupSubtitle { margin: -4px 0 8px !important; font-size: 12px !important; }
+  #termsRow { margin-bottom: 6px !important; }
+  .submit-btn { padding: 9px 0; }
+</style>
+<script>
+  const rememberRowEl = document.getElementById("rememberMeInput") ? document.getElementById("rememberMeInput").closest("div") : null;
+  const signupFieldsForRemember = document.getElementById("signupFields");
+  function syncRememberVisibility() {
+    if (!rememberRowEl) return;
+    const isSignup = signupFieldsForRemember.style.display !== "none";
+    rememberRowEl.style.display = isSignup ? "none" : "flex";
+  }
+  if (signupFieldsForRemember) {
+    new MutationObserver(syncRememberVisibility).observe(signupFieldsForRemember, { attributes: true, attributeFilter: ["style"] });
+    syncRememberVisibility();
+  }
+</script>
