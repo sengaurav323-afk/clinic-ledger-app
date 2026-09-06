@@ -2169,3 +2169,26 @@
     syncRememberVisibility();
   }
 </script>
+<script>
+  document.querySelectorAll('svg path[d*="M12 21s-7-4.35"]').forEach((path) => {
+    const svg = path.closest("svg");
+    if (!svg) return;
+    const size = svg.getAttribute("width") || "26";
+    const img = document.createElement("img");
+    img.src = "logo.png";
+    img.alt = "Clinic Ledger";
+    img.style.width = size + "px";
+    img.style.height = size + "px";
+    img.style.objectFit = "contain";
+    svg.replaceWith(img);
+  });
+
+  const brandEl = document.querySelector(".brand");
+  if (brandEl && !brandEl.querySelector("img")) {
+    const img = document.createElement("img");
+    img.src = "logo.png";
+    img.alt = "Clinic Ledger";
+    img.style.cssText = "width:22px; height:22px; object-fit:contain; flex-shrink:0";
+    brandEl.insertAdjacentElement("afterbegin", img);
+  }
+</script>
