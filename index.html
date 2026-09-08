@@ -2216,3 +2216,65 @@
   .security-footer { margin-top: 18px !important; }
   #forgotPasswordRow { margin-top: 12px !important; }
 </style>
+<style>
+  #authScreen { background: linear-gradient(180deg, #FAFBFD 0%, #F2F4F8 100%); }
+  .field-error { color: #9C3B2E; font-size: 12px; margin-top: -8px; margin-bottom: 10px; display: none; }
+</style>
+<script>
+  const emailFormEl = document.getElementById("emailForm");
+  emailFormEl.setAttribute("novalidate", "novalidate");
+
+  document.querySelectorAll("label.field-label").forEach((label) => {
+    const t = label.textContent.trim();
+    if (t === "Email" || t === "Password") {
+      label.innerHTML = t + ' <span style="color:#9C3B2E">*</span>';
+    }
+  });
+
+  function addFieldError(inputId) {
+    const input = document.getElementById(inputId);
+    const err = document.createElement("div");
+    err.id = inputId + "Err";
+    err.className = "field-error";
+    input.insertAdjacentElement("afterend", err);
+    return err;
+  }
+  const emailErrEl = addFieldError("emailInput");
+  const passwordErrEl = addFieldError("passwordInput");
+
+  function isValidEmailFormat(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  document.getElementById("emailSubmitBtn").addEventListener("click", (e) => {
+    const isSignup = document.getElementById("signupFields").style.display !== "none";
+    if (isSignup) return;
+
+    emailErrEl.style.display = "none";
+    passwordErrEl.style.display = "none";
+    const email = document.getElementById("emailInput").value.trim();
+    const password = document.getElementById("passwordInput").value;
+    let hasError = false;
+
+    if (!email) {
+      emailErrEl.textContent = "Email is required";
+      emailErrEl.style.display = "block";
+      hasError = true;
+    } else if (!isValidEmailFormat(email)) {
+      emailErrEl.textContent = "Please enter a valid email address";
+      emailErrEl.style.display = "block";
+      hasError = true;
+    }
+
+    if (!password) {
+      passwordErrEl.textContent = "Password is required";
+      passwordErrEl.style.display = "block";
+      hasError = true;
+    }
+
+    if (hasError) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+</script>
