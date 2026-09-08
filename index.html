@@ -1950,7 +1950,8 @@
       msg.textContent = "Photo updated.";
       msg.className = "auth-msg ok";
     } catch (err) {
-      msg.textContent = "Could not upload photo — please try again.";
+      console.error("[Clinic Ledger] Photo upload FAILED:", err.code, err.message);
+      msg.textContent = "Could not upload photo (" + (err.code || "unknown error") + "). Please try again.";
       msg.className = "auth-msg error";
     }
   }
@@ -2395,3 +2396,4 @@
     }
   }, true);
 </script>
+
