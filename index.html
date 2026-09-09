@@ -1876,12 +1876,12 @@
   import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
   const ppApp = getApp();
   const ppAuth = getAuth(ppApp);
   const ppDb = getFirestore(ppApp);
-  const ppStorage = getStorage(ppApp);
+  const CLOUDINARY_CLOUD_NAME = "het3cnao";
+  const CLOUDINARY_UPLOAD_PRESET = "clinic_ledger_unsigned";
   let ppUser = null;
 
   function renderAvatar(photoURL, initials) {
@@ -1939,10 +1939,22 @@
     }
     msg.textContent = "Uploading…";
     try {
-      const ext = file.type === "image/png" ? "png" : "jpg";
-      const fileRef = ref(ppStorage, `profile-photos/${ppUser.uid}/photo.${ext}`);
-      await uploadBytes(fileRef, file);
-      const url = await getDownloadURL(fileRef);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      formData.append("folder", `clinic-ledger/profile-images/${ppUser.uid}`);
+      formData.append("public_id", "photo");
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!cloudRes.ok) {
+        const errBody = await cloudRes.json().catch(() => ({}));
+        throw new Error(errBody.error && errBody.error.message ? errBody.error.message : "Cloudinary upload failed");
+      }
+      const cloudData = await cloudRes.json();
+      let url = cloudData.secure_url;
+      url = url.replace("/image/upload/", "/image/upload/c_fill,g_face,h_200,w_200,q_auto,f_auto/");
       await updateDoc(doc(ppDb, "users", ppUser.uid), { photoURL: url });
       const preview = document.getElementById("photoPreview");
       if (preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" />`;
@@ -1960,8 +1972,8 @@
     if (!ppUser) return;
     const msg = document.getElementById("photoMsg");
     try {
-      await deleteObject(ref(ppStorage, `profile-photos/${ppUser.uid}/photo.jpg`)).catch(() => {});
-      await deleteObject(ref(ppStorage, `profile-photos/${ppUser.uid}/photo.png`)).catch(() => {});
+      // Cloudinary asset deletion needs a secure backend — not done from the browser.
+      // Removing the Firestore reference is sufficient for now.
       await updateDoc(doc(ppDb, "users", ppUser.uid), { photoURL: null });
       const preview = document.getElementById("photoPreview");
       const firstName = (document.getElementById("setFirstName") || {}).value || "";
@@ -2396,4 +2408,5 @@
     }
   }, true);
 </script>
+
 
