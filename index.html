@@ -1943,7 +1943,7 @@
       formData.append("file", file);
       formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
       formData.append("folder", `clinic-ledger/profile-images/${ppUser.uid}`);
-      formData.append("public_id", "photo");
+      formData.append("public_id", "photo_" + Date.now());
       const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
         method: "POST",
         body: formData,
@@ -2408,5 +2408,6 @@
     }
   }, true);
 </script>
+
 
 
