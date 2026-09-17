@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Clinic Ledger</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
   :root {
@@ -397,6 +398,8 @@
     messagingSenderId: "56185108381",
     appId: "1:56185108381:web:5563db3ef9573035762174",
   };
+
+  const WORKER_URL = "https://clinic-ledger-worker.sengaurav323-clinic.workers.dev";
 
   const FEE_TYPES = [
     { key: "counselling", label: "Counselling", color: "#2F5233" },
@@ -900,10 +903,85 @@
     `;
 
     grid.querySelectorAll("[data-plan]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        alert("Payment collection isn't connected yet — this app doesn't have a payment gateway (e.g. Razorpay) integrated, so real ₹" + (btn.dataset.plan === "yearly" ? "999" : "99") + " payments can't be taken here yet.");
+      btn.addEventListener("click", async () => {
+        if (!auth.currentUser) return;
+        const plan = btn.dataset.plan;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Preparing payment...";
+
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const orderRes = await fetch(WORKER_URL + "/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+            body: JSON.stringify({ plan: plan }),
+          });
+
+          if (!orderRes.ok) {
+            const errBody = await orderRes.json().catch(() => ({}));
+            alert(errBody.error || "Could not start payment — please try again.");
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          const order = await orderRes.json();
+
+          const rzp = new Razorpay({
+            key: order.keyId,
+            amount: order.amount,
+            currency: order.currency,
+            name: "Clinic Ledger",
+            description: order.planLabel + " Subscription",
+            order_id: order.orderId,
+            prefill: { email: auth.currentUser.email || "" },
+            theme: { color: "#2E5BFF" },
+            handler: function () {
+              btn.textContent = "Confirming payment...";
+              waitForSubscriptionUpdate(plan, btn, originalText);
+            },
+            modal: {
+              ondismiss: function () {
+                btn.disabled = false;
+                btn.textContent = originalText;
+              },
+            },
+          });
+
+          rzp.on("payment.failed", function () {
+            alert("Payment failed — please try again.");
+            btn.disabled = false;
+            btn.textContent = originalText;
+          });
+
+          rzp.open();
+        } catch (err) {
+          alert("Could not start payment — please check your connection and try again.");
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
       });
     });
+  }
+
+  async function waitForSubscriptionUpdate(expectedPlan, btn, originalText) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (snap.exists() && snap.data().subscriptionPlan === expectedPlan) {
+          userProfile = snap.data();
+          renderSubscription();
+          return;
+        }
+      } catch (e) {
+        // ignore and retry
+      }
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+    alert("Payment received — it may take a minute to reflect here. If it doesn't update shortly, refresh the page.");
   }
 
   // ---- Referral page ----
