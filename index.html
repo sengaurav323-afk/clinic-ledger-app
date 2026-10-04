@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Clinic Ledger</title>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
@@ -246,7 +246,7 @@
 
 <div id="appShell" style="display:none">
   <div id="sidebar">
-    <div class="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg> Clinic Ledger</div>
+    <div class="brand"><img src="logo.png" alt="Clinic Ledger" style="width:22px;height:22px;object-fit:contain;flex-shrink:0"> Clinic Ledger</div>
     <div class="user-card">
       <div class="avatar" id="avatarInitials">?</div>
       <div style="min-width:0">
@@ -578,7 +578,7 @@
   }
 
   // ---- Sidebar navigation ----
-  const views = ["dashboard", "subscription", "refer", "placeholder"];
+  const views = ["dashboard", "subscription", "refer", "placeholder", "payments-real", "patients-real", "reports-real", "expenses-real", "categories-real", "settings-real"];
   function showView(view, label) {
     views.forEach((v) => {
       const el = document.getElementById("view-" + v);
@@ -836,7 +836,7 @@
     if (!panel || !grid) return;
 
     const createdAt = userProfile.createdAt ? new Date(userProfile.createdAt) : new Date();
-    const trialEnd = addMonths(createdAt, 1);
+    const trialEnd = addDays(createdAt, 15);
     const now = new Date();
 
     const paidPlan = userProfile.subscriptionPlan; // "monthly" | "yearly" | undefined
@@ -883,7 +883,7 @@
         ${isTrialCurrent ? `<span class="plan-badge trial">Current</span>` : ""}
         <div class="plan-name">Free Trial</div>
         <div class="plan-price">₹0</div>
-        <ul class="plan-features"><li>First month free</li><li>Full access during trial</li></ul>
+        <ul class="plan-features"><li>First 15 days free</li><li>Full access during 15-day trial</li></ul>
         <button class="plan-btn" disabled style="opacity:0.5">Automatic on sign-up</button>
       </div>
       <div class="plan-card ${isMonthlyCurrent ? "current" : ""}">
@@ -1059,6 +1059,26 @@
       if (password.length < 6) { setAuthMsg("emailMsg", "Password should be at least 6 characters.", "error"); return; }
       if (password !== confirmPassword) { setAuthMsg("emailMsg", "Passwords don't match.", "error"); return; }
 
+      let resolvedReferrerUid = null;
+      if (referredBy) {
+        try {
+          const lookupRes = await fetch(WORKER_URL + "/resolve-referral-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: referredBy }),
+          });
+          const lookup = await lookupRes.json();
+          if (!lookupRes.ok || !lookup.found) {
+            setAuthMsg("emailMsg", "That referral code wasn't found. Check it, or leave it blank.", "error");
+            return;
+          }
+          resolvedReferrerUid = lookup.uid;
+        } catch (err) {
+          setAuthMsg("emailMsg", "Couldn't verify that referral code — please try again.", "error");
+          return;
+        }
+      }
+
       try {
         isRegistering = true;
         const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -1067,9 +1087,7 @@
           firstName, lastName, city, mobile, email,
           createdAt: new Date().toISOString(),
           referralCode: code,
-          referredBy: referredBy || null,
-          subscriptionPlan: null,
-          subscriptionStart: null,
+          referredBy: resolvedReferrerUid,
         });
         await signOut(auth);
         isRegistering = false;
@@ -1136,6 +1154,128 @@
 
   render();
 </script>
+<style id="responsive-fix">
+#mobileTopbar, #navBackdrop { display: none; }
+@media (max-width: 860px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  #appShell, #appShell *, #appShell *::before, #appShell *::after { box-sizing: border-box; }
+
+  #mobileTopbar {
+    display: flex; align-items: center; gap: 12px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    min-height: 56px; padding: 6px 12px; padding-top: calc(6px + env(safe-area-inset-top, 0px));
+    background: #0E1A3A; color: #fff;
+  }
+  #mobileTopbar .mt-menu {
+    background: transparent; border: 0; color: #fff; font-size: 26px; line-height: 1;
+    min-width: 44px; min-height: 44px; cursor: pointer; border-radius: 8px;
+  }
+  #mobileTopbar .mt-logo { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
+  #mobileTopbar .mt-title { font-size: 17px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  #sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 1002;
+    width: 280px; max-width: 85vw; height: auto;
+    flex-direction: column; align-items: stretch; gap: 0;
+    overflow-x: hidden; overflow-y: auto;
+    padding: 16px 12px; padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    transform: translateX(-105%); visibility: hidden;
+    transition: transform .25s ease, visibility .25s;
+  }
+  #sidebar.open { transform: translateX(0); visibility: visible; }
+  #sidebar .brand { padding: 0 6px 14px 6px; margin-bottom: 0; }
+  #sidebar .user-card { display: flex; margin-bottom: 12px; }
+  #sidebar .nav-list { display: block; flex: 0 0 auto; }
+  #sidebar .nav-item { padding: 13px 12px; min-height: 46px; font-size: 15px; }
+  #sidebar .nav-item span.nav-label { display: inline !important; }
+  #sidebar .signout-item { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.14); }
+
+  #navBackdrop { position: fixed; inset: 0; z-index: 1001; background: rgba(0,0,0,.45); }
+  #navBackdrop.show { display: block; }
+
+  #main {
+    width: 100%; min-width: 0; max-width: 100%;
+    padding: 16px 14px;
+    padding-top: calc(72px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  }
+  #main table { display: block; max-width: 100%; overflow-x: auto; }
+  #main input, #main select, #main textarea { max-width: 100%; font-size: 16px; }
+  .fab { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); right: 16px; }
+}
+</style>
+<script id="responsive-fix-js">
+(function () {
+  var shell = document.getElementById('appShell');
+  var sidebar = document.getElementById('sidebar');
+  if (!shell || !sidebar) return;
+
+  var bar = document.createElement('div');
+  bar.id = 'mobileTopbar';
+  bar.innerHTML = '<button type="button" class="mt-menu" aria-label="Open menu" aria-expanded="false">&#9776;</button>' +
+                  '<img class="mt-logo" src="logo.png" alt="">' +
+                  '<span class="mt-title">Dashboard</span>';
+  var back = document.createElement('div');
+  back.id = 'navBackdrop';
+  shell.insertBefore(bar, shell.firstChild);
+  shell.appendChild(back);
+
+  var btn = bar.querySelector('.mt-menu');
+  var title = bar.querySelector('.mt-title');
+
+  function setOpen(open) {
+    sidebar.classList.toggle('open', open);
+    back.classList.toggle('show', open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  btn.addEventListener('click', function () { setOpen(!sidebar.classList.contains('open')); });
+  back.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 860) setOpen(false); });
+
+  sidebar.addEventListener('click', function (e) {
+    var item = e.target.closest('.nav-item');
+    if (!item) return;
+    var label = item.querySelector('.nav-label');
+    if (label && item.id !== 'logoutBtn') title.textContent = label.textContent;
+    setOpen(false);
+  });
+})();
+</script>
+<style id="responsive-fix-fields">
+@media (max-width: 860px) {
+  #main select, #main input[type="date"] {
+    -webkit-appearance: none; appearance: none;
+    background-color: #fff; min-height: 44px;
+  }
+  #main select {
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23555' stroke-width='2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+  }
+}
+</style>
+<script id="route-fix">
+(function () {
+  var items = Array.prototype.slice.call(document.querySelectorAll('.nav-item[data-view]'));
+  function slug(v) { return v.replace(/^placeholder-/, ''); }
+  function itemFor(h) { return items.filter(function (i) { return slug(i.dataset.view) === h; })[0]; }
+
+  items.forEach(function (i) {
+    i.addEventListener('click', function () {
+      var h = slug(i.dataset.view);
+      if (location.hash !== '#' + h) location.hash = h;
+    });
+  });
+
+  function goToHash() {
+    var it = itemFor(location.hash.slice(1));
+    if (it && !it.classList.contains('active')) it.click();
+  }
+  window.addEventListener('hashchange', goToHash);
+  window.addEventListener('load', goToHash);
+})();
+</script>
 </body>
 </html>
 
@@ -1171,6 +1311,7 @@
   const fmtDateShort2 = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
   const escapeHtml2 = (s) => { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; };
   function addMonths2(date, n) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + n); return d; }
+  function addDays2(date, n) { const d = new Date(date.getTime()); d.setDate(d.getDate() + n); return d; }
   function addYears2(date, n) { const d = new Date(date.getTime()); d.setFullYear(d.getFullYear() + n); return d; }
   function weekRange2(iso) {
     const d = new Date(iso + "T00:00:00");
@@ -1788,7 +1929,7 @@
     document.getElementById("setReferralCode").textContent = extProfile.referralCode || "—";
 
     const createdAt = extProfile.createdAt ? new Date(extProfile.createdAt) : new Date();
-    const trialEnd = addMonths2(createdAt, 1);
+    const trialEnd = addDays2(createdAt, 15);
     const now = new Date();
     const paidPlan = extProfile.subscriptionPlan;
     const paidStart = extProfile.subscriptionStart ? new Date(extProfile.subscriptionStart) : null;
@@ -1897,14 +2038,14 @@
   wrap.insertAdjacentHTML("afterbegin", `
     <div id="authLeftPanel">
       <div class="logo">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg>
+        <img src="logo.png" alt="Clinic Ledger" style="width:26px;height:26px;object-fit:contain">
         <span>CLINIC LEDGER</span>
       </div>
       <h2>Smart way to<br/>manage your clinic</h2>
       <div class="sub">Track payments, manage patients, and grow your practice with Clinic Ledger.</div>
       <div class="auth-feature">
         <div class="fi">🎁</div>
-        <div><div class="ft">1 Month Free Trial</div><div class="fd">Try all features absolutely free</div></div>
+        <div><div class="ft">15 Days Free Trial</div><div class="fd">Try all features absolutely free</div></div>
       </div>
       <div class="auth-feature">
         <div class="fi">🛡️</div>
@@ -2116,7 +2257,7 @@
   const subtitleEl = document.createElement("p");
   subtitleEl.id = "signupSubtitle";
   subtitleEl.style.cssText = "text-align:center; color:var(--muted); font-size:13px; margin:-16px 0 20px; display:none";
-  subtitleEl.textContent = "Sign up and get 1 month free access";
+  subtitleEl.textContent = "Sign up and get 15 days free access";
   document.getElementById("authHeading").insertAdjacentElement("afterend", subtitleEl);
 
   const termsRow = document.createElement("div");
@@ -2181,7 +2322,7 @@
 
   const signinLogo = document.createElement("div");
   signinLogo.className = "signin-logo";
-  signinLogo.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg>`;
+  signinLogo.innerHTML = `<img src="logo.png" alt="Clinic Ledger" style="width:48px;height:48px;object-fit:contain">`;
   document.getElementById("authHeading").insertAdjacentElement("beforebegin", signinLogo);
 
   const securityFooter = document.createElement("div");
