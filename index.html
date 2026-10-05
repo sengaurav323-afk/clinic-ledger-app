@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Clinic Ledger</title>
+<link rel="canonical" href="https://curevona.world/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Curevona">
+<meta property="og:title" content="Clinic Ledger">
+<meta property="og:url" content="https://curevona.world/">
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
@@ -1514,11 +1519,21 @@ const panel = h("div", { id: "impPanel" });
 overlay.append(panel);
 document.body.appendChild(overlay);
 
+/* import-v2b */
+function render() {
+  const out = [];
+  (function add(c) {
+    if (Array.isArray(c)) { c.forEach(add); return; }
+    if (c == null || c === false) return;
+    out.push(c.nodeType ? c : document.createTextNode(String(c)));
+  })(Array.prototype.slice.call(arguments));
+  panel.replaceChildren.apply(panel, out);
+}
 function reset(type) {
   S = { type: type, fileName: "", source: "file", sheet: "", headers: [], body: [], map: {}, conf: {}, amountType: "", defaultStatus: "pending", recs: [], existing: [], exPay: new Map(), exExp: new Map(), onlyAttn: false, scan: null, pending: null, runId: 0 };
 }
 function openImport(type) { reset(type); overlay.classList.add("open"); stepFile(); }
-function closeImport() { overlay.classList.remove("open"); panel.replaceChildren(); S = null; }
+function closeImport() { overlay.classList.remove("open"); render(); S = null; }
 function head(title, noHist) {
   return h("div", { class: "imp-head" }, h("h2", { text: title }),
     h("div", { style: "display:flex;gap:8px" },
@@ -1552,7 +1567,7 @@ function stepFile() {
   const IMG = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
   const inputs = { cam: mk("image/*", false, true), photo: mk(IMG, true), pdf: mk(".pdf,application/pdf"), sheet: mk(".csv,.xlsx,.xls"), word: mk(".docx"), any: mk(IMG + ",.pdf,.csv,.xlsx,.xls,.docx", true) };
   const tile = (label, key, primary) => h("button", { class: "imp-btn" + (primary ? "" : " sec"), type: "button", onclick: () => inputs[key].click(), text: label });
-  panel.replaceChildren(head("Smart Import"),
+  render(head("Smart Import"),
     h("p", { class: "imp-muted", text: "Import patients, payments and expenses from photos, camera, PDFs, Excel, CSV and Word documents. You will review everything before anything is saved." }),
     h("div", { class: "imp-tiles" },
       tile("Take Photo", "cam", true), tile("Upload Photo", "photo"), tile("Upload PDF", "pdf"),
@@ -1563,7 +1578,7 @@ function stepFile() {
 }
 function failView(msg) {
   if (!S) return;
-  panel.replaceChildren(head("Smart Import"),
+  render(head("Smart Import"),
     h("div", { class: "imp-err" }, h("strong", { text: "We couldn't read this document" }), h("p", { class: "imp-muted", text: msg })),
     h("div", { class: "imp-actions" },
       h("button", { class: "imp-btn", type: "button", onclick: stepFile, text: "Try Again" }),
@@ -1611,7 +1626,7 @@ async function toJpeg(file) {
   } finally { URL.revokeObjectURL(url); }
 }
 async function startImages(files) {
-  panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Preparing " + (files.length > 1 ? "photos" : "photo") + " ..." }));
+  render(head("Smart Import", true), h("p", { class: "imp-muted", text: "Preparing " + (files.length > 1 ? "photos" : "photo") + " ..." }));
   try {
     const imgs = [];
     for (const f of files) imgs.push(await toJpeg(f));
@@ -1621,7 +1636,7 @@ async function startImages(files) {
   } catch (e) { failView("Unable to read this image. Please upload a clearer photo."); }
 }
 async function startPdf(file) {
-  panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Reading " + file.name + " ..." }));
+  render(head("Smart Import", true), h("p", { class: "imp-muted", text: "Reading " + file.name + " ..." }));
   try {
     await needPdf();
     const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
@@ -1629,7 +1644,7 @@ async function startPdf(file) {
     const imgs = [];
     for (let p = 1; p <= n; p++) {
       if (!S) return;
-      panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Preparing page " + p + " of " + n + " ..." }));
+      render(head("Smart Import", true), h("p", { class: "imp-muted", text: "Preparing page " + p + " of " + n + " ..." }));
       const page = await pdf.getPage(p);
       const vp1 = page.getViewport({ scale: 1 });
       const vp = page.getViewport({ scale: Math.min(3, 1600 / Math.max(vp1.width, vp1.height)) });
@@ -1645,7 +1660,7 @@ async function startPdf(file) {
 }
 function stepScanPreview() {
   const p = S.pending;
-  panel.replaceChildren(head("Check Before Scanning", true),
+  render(head("Check Before Scanning", true),
     h("p", { class: "imp-muted", text: p.fileName + " - " + p.images.length + (p.kind === "pdf" ? " page(s)" : " image(s)") }),
     h("div", { class: "imp-thumbs" }, p.images.map((im) => h("img", { src: im.preview, alt: "Preview" }))),
     p.kind === "pdf" ? note("This PDF will be read as page images. If it contains scanned pages, processing may take a little longer.") : null,
@@ -1691,7 +1706,7 @@ async function runScan() {
   const p = S.pending, run = ++S.runId;
   const dead = () => !S || run !== S.runId;
   const per = 3, batches = Math.ceil(p.images.length / per);
-  const show = (msg) => panel.replaceChildren(head("Scanning ...", true), h("p", { class: "imp-muted", text: msg }),
+  const show = (msg) => render(head("Scanning ...", true), h("p", { class: "imp-muted", text: msg }),
     h("div", { class: "imp-actions" }, h("button", { class: "imp-btn sec", type: "button", text: "Cancel", onclick: () => { if (S) { S.runId++; stepFile(); } } })));
   const all = { handwriting: false, records: [], warnings: [] };
   try {
@@ -1741,7 +1756,7 @@ function stepScanGroups() {
       h("div", { class: "imp-rh" }, h("strong", { text: g[t].length + " " + TYPE_L[t].toLowerCase() + " detected" }), done ? chip("Imported", "ok") : null),
       h("button", { class: "imp-btn", type: "button", disabled: done, text: done ? "Done" : "Review " + TYPE_L[t], onclick: () => reviewGroup(t) }));
   });
-  panel.replaceChildren(head("Data Detected", true),
+  render(head("Data Detected", true),
     h("p", { class: "imp-muted", text: S.fileName + ". Choose a group to review. Nothing is saved until you confirm." }),
     sc.handwriting ? h("div", { class: "imp-warn", text: "Handwriting was detected. Reading handwriting can be uncertain, so please check every value." }) : null,
     sc.warnings.map((w) => note(w)),
@@ -1753,7 +1768,7 @@ function stepScanGroups() {
 }
 async function reviewGroup(t) {
   S.type = t;
-  panel.replaceChildren(head("Review Imported Data", true), h("p", { class: "imp-muted", text: "Checking for duplicates ..." }));
+  render(head("Review Imported Data", true), h("p", { class: "imp-muted", text: "Checking for duplicates ..." }));
   try { await loadExisting(); } catch (e) { return failView("Could not check your existing records for duplicates. Nothing was imported."); }
   if (!S) return;
   S.recs = S.scan.groups[t];
@@ -1765,7 +1780,7 @@ async function reviewGroup(t) {
 /* ---------- spreadsheets and Word: read, map columns ---------- */
 async function handleFile(file) {
   S.scan = null; S.source = "file";
-  panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Reading " + file.name + " ..." }));
+  render(head("Smart Import", true), h("p", { class: "imp-muted", text: "Reading " + file.name + " ..." }));
   try {
     const r = await readFile(file);
     if (!S) return;
@@ -1820,7 +1835,7 @@ function stepMap() {
     extra.push(h("div", { class: "imp-row" }, h("div", { text: "Rows with no status are" }), ds, h("span", { class: "imp-badge", text: "Default" })));
   }
   const ready = okName && okAmt && okType;
-  panel.replaceChildren(head("Match Columns"),
+  render(head("Match Columns"),
     h("p", { class: "imp-muted", text: S.fileName + " - " + S.body.length + " rows found (" + S.sheet + ")" }),
     h("div", { class: "imp-row" }, h("div", { text: "Import as" }), typeSel, h("span", { class: "imp-badge", text: "Detected" })),
     rows, extra,
@@ -1924,7 +1939,7 @@ async function loadExisting() {
 async function buildAndReview() {
   const fields = fieldsOf(), pay = S.type === "payments";
   const amountMode = pay && !FEES.some((k) => S.map[k] >= 0) && S.map.total >= 0;
-  panel.replaceChildren(head("Review Imported Data", true), h("p", { class: "imp-muted", text: "Checking for duplicates ..." }));
+  render(head("Review Imported Data", true), h("p", { class: "imp-muted", text: "Checking for duplicates ..." }));
   try { await loadExisting(); }
   catch (e) { return failView("Could not check your existing records for duplicates (" + (e && e.message ? e.message : e) + "). Nothing was imported."); }
   if (!S) return;
@@ -1967,7 +1982,7 @@ function stepReview() {
   S.ui = { sum: sum, confirmBtn: confirmBtn };
   const attn = h("input", { type: "checkbox" });
   attn.addEventListener("change", () => { S.onlyAttn = attn.checked; refreshAll(); });
-  panel.replaceChildren(head("Review Imported Data", true),
+  render(head("Review Imported Data", true),
     h("p", { class: "imp-muted", text: S.fileName + " - importing as " + TYPE_L[t] + ". Nothing is saved until you press Confirm & Import." }),
     (S.scan && S.scan.handwriting) ? h("div", { class: "imp-warn", text: "Handwriting was detected. Reading handwriting can be uncertain, so please check every value." }) : null,
     sum,
@@ -2038,7 +2053,7 @@ function updateSummary() {
   const review = S.recs.some((r) => r.warns.length > 0);
   S.ui.sum.replaceChildren(h("span", { text: "Detected: " + S.recs.length }), h("span", { text: "Ready: " + p.ready }),
     h("span", { text: "Need fixing: " + p.bad }), h("span", { text: "Duplicates: " + p.dupes }),
-    review ? h("span", { text: "Some fields need your review before importing." }) : null,
+    review ? h("span", { text: "Some fields need your review before importing." }) : "",
     h("strong", { text: "Will import: " + p.imp + (p.upd ? ", update: " + p.upd : "") }));
   S.ui.confirmBtn.disabled = (p.imp + p.upd) === 0;
 }
@@ -2072,7 +2087,7 @@ function stepDone(s) {
   const type = S.type, scan = S.scan;
   if (scan) scan.done[type] = true;
   const more = scan && ["payments", "patients", "expenses"].some((t) => scan.groups[t].length && !scan.done[t]);
-  panel.replaceChildren(head("Import Complete", true),
+  render(head("Import Complete", true),
     h("div", { class: "imp-note" },
       h("div", { text: "Detected: " + s.detected }), h("div", { text: "Imported: " + s.imported }),
       h("div", { text: "Updated: " + s.updated }), h("div", { text: "Skipped: " + s.skipped }), h("div", { text: "Duplicates found: " + s.duplicates })),
@@ -2086,12 +2101,12 @@ function stepDone(s) {
 /* ---------- import history ---------- */
 async function stepHistory() {
   if (!S) reset("payments");
-  panel.replaceChildren(head("Import History", true), h("p", { class: "imp-muted", text: "Loading ..." }));
+  render(head("Import History", true), h("p", { class: "imp-muted", text: "Loading ..." }));
   try {
     if (!auth.currentUser) throw new Error("Please sign in again.");
     const snap = await getDocs(query(collection(db, "import_history"), where("userId", "==", auth.currentUser.uid)));
     const items = snap.docs.map((d) => d.data()).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 25);
-    panel.replaceChildren(head("Import History", true),
+    render(head("Import History", true),
       items.length ? items.map((x) => h("div", { class: "imp-hist" },
         h("strong", { text: x.fileName || "(file)" }),
         h("div", { class: "imp-muted", text: new Date(x.createdAt).toLocaleString() + " - " + (TYPE_L[x.importType] || x.importType) + " - " + x.status }),
@@ -2099,7 +2114,7 @@ async function stepHistory() {
         : h("p", { class: "imp-muted", text: "No imports yet." }),
       h("div", { class: "imp-actions" }, h("button", { class: "imp-btn", type: "button", onclick: stepFile, text: "Back" })));
   } catch (e) {
-    panel.replaceChildren(head("Import History", true), h("div", { class: "imp-err", text: "Could not load history: " + (e && e.message ? e.message : e) }),
+    render(head("Import History", true), h("div", { class: "imp-err", text: "Could not load history: " + (e && e.message ? e.message : e) }),
       h("div", { class: "imp-actions" }, h("button", { class: "imp-btn", type: "button", onclick: stepFile, text: "Back" })));
   }
 }

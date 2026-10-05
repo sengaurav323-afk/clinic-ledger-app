@@ -1,19 +1,21 @@
-﻿{
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**",
-      "README.md",
-      "SETUP-GUIDE.md",
-      "firestore.rules"
-    ]
-  },
-  "storage": {
-    "rules": "storage.rules"
-  },
-  "firestore": {
-    "rules": "firestore.rules"
-  }
+{
+    "hosting":  {
+                    "public":  ".",
+                    "ignore":  [
+                                   "firebase.json",
+                                   "**/.*",
+                                   "**/node_modules/**",
+                                   "README.md",
+                                   "SETUP-GUIDE.md",
+                                   "firestore.rules",
+                                   "**/*.ps1",
+                                   "**/*.backup*"
+                               ]
+                },
+    "storage":  {
+                    "rules":  "storage.rules"
+                },
+    "firestore":  {
+                      "rules":  "firestore.rules"
+                  }
 }
