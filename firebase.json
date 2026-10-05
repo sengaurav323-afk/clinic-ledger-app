@@ -9,7 +9,8 @@
                                    "SETUP-GUIDE.md",
                                    "firestore.rules",
                                    "**/*.ps1",
-                                   "**/*.backup*"
+                                   "**/*.backup*",
+                                   "storage.rules"
                                ]
                 },
     "storage":  {
