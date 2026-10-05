@@ -1276,6 +1276,854 @@
   window.addEventListener('load', goToHash);
 })();
 </script>
+<style id="import-fix">
+.imp-bar{display:flex;justify-content:flex-end;margin-bottom:12px}
+.imp-btn{background:var(--accent,#2B5CFF);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;min-height:42px}
+.imp-btn.sec{background:#fff;color:#1a2233;border:1px solid #cfd6e4}
+.imp-btn:disabled{opacity:.45;cursor:not-allowed}
+#impOverlay{display:none;position:fixed;inset:0;z-index:3000;background:rgba(10,18,40,.55);overflow-y:auto;-webkit-overflow-scrolling:touch}
+#impOverlay.open{display:block}
+#impPanel{background:#fff;color:#1a2233;max-width:980px;margin:24px auto;border-radius:12px;padding:20px;box-sizing:border-box;width:calc(100% - 24px)}
+#impPanel *{box-sizing:border-box}
+.imp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.imp-head h2{margin:0;font-size:22px}
+.imp-head .imp-btn{padding:8px 12px;min-height:38px}
+.imp-muted{color:#5b667a;font-size:14px;margin:8px 0}
+.imp-note{background:#f1f5ff;border:1px solid #d6e0ff;border-radius:8px;padding:10px 12px;font-size:13px;margin:12px 0}
+.imp-warn{background:#fff8e6;border:1px solid #f1dca4;border-radius:8px;padding:10px 12px;font-size:13px;margin:12px 0}
+.imp-err{background:#fff0f0;border:1px solid #f3c2c2;border-radius:8px;padding:12px;margin-bottom:12px}
+.imp-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(140px,1.5fr) auto;gap:8px;align-items:center;margin:6px 0}
+.imp-in,.imp-sel{width:100%;padding:8px 10px;border:1px solid #d5dbe6;border-radius:8px;font-size:16px;background:#fff;color:#1a2233;min-height:42px}
+.imp-badge{font-size:11px;padding:2px 8px;border-radius:999px;background:#eef1f6;color:#5b667a;white-space:nowrap}
+.imp-badge.high{background:#e3f4e8;color:#1e6b36}.imp-badge.medium{background:#fff1d6;color:#8a5a00}.imp-badge.manual{background:#e3ecff;color:#2446a8}
+.imp-actions{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.imp-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}
+.imp-thumbs{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.imp-thumbs img{max-width:150px;max-height:200px;border:1px solid #dfe5f0;border-radius:8px;object-fit:cover;background:#f6f8fc}
+.imp-sum{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14px;margin:10px 0;padding:10px 12px;background:#f6f8fc;border-radius:8px}
+.imp-rec{border:1px solid #dfe5f0;border-radius:10px;padding:12px;margin:10px 0}
+.imp-rec.imp-bad{border-color:#f0b5b5;background:#fffafa}
+.imp-rh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.imp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.imp-grid label{display:block;font-size:11px;color:#667;margin-bottom:2px}
+.imp-chip{font-size:12px;padding:2px 8px;border-radius:999px}
+.imp-chip.err{background:#fde4e4;color:#9b1c1c}.imp-chip.warn{background:#fff1d6;color:#8a5a00}.imp-chip.ok{background:#e3f4e8;color:#1e6b36}.imp-chip.dup{background:#e3ecff;color:#2446a8}
+.imp-hist{border:1px solid #dfe5f0;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}
+@media (max-width:860px){
+ #impPanel{margin:0;width:100%;min-height:100%;border-radius:0;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+ .imp-row{grid-template-columns:1fr}
+ .imp-tiles{grid-template-columns:1fr 1fr}
+}
+</style>
+<script type="module" id="import-fix-js">
+/* import-v2 */
+import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, writeBatch, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const WORKER = "https://clinic-ledger-worker.sengaurav323-clinic.workers.dev";
+const db = getFirestore(getApp());
+const auth = getAuth(getApp());
+const FEES = ["counselling", "medicine", "referral", "other"];
+const FEE_L = { counselling: "Counselling", medicine: "Medicine", referral: "Referral", other: "Other" };
+const CATS = ["Rent", "Salaries", "Supplies", "Utilities", "Other"];
+const TYPE_L = { payments: "Payments", patients: "Patients", expenses: "Expenses" };
+const COL = { payments: "clinic_entries", patients: "patients", expenses: "expenses" };
+const PAY = [
+  { k: "patient", l: "Patient name", syn: ["patientname", "patient", "name", "fullname", "clientname"] },
+  { k: "date", l: "Date", syn: ["date", "paymentdate", "visitdate", "dateofpayment", "visit"] },
+  { k: "counselling", l: "Counselling fee", syn: ["counselling", "counseling", "consultation", "consultationfee", "counsellingfee", "counselingfee", "consult", "consultfee"] },
+  { k: "medicine", l: "Medicine fee", syn: ["medicine", "medicinefee", "medicines", "meds", "medicinecharges"] },
+  { k: "referral", l: "Referral fee", syn: ["referral", "referralfee", "referralamount", "referralcharges"] },
+  { k: "other", l: "Other fee", syn: ["other", "otherfee", "others", "othercharges", "misc"] },
+  { k: "total", l: "Total / Amount", syn: ["total", "totalamount", "amount", "grandtotal", "totalfee", "amountpaid"] },
+  { k: "status", l: "Status", syn: ["status", "paymentstatus", "paid", "paidstatus"] },
+  { k: "notes", l: "Notes", syn: ["notes", "note", "remarks", "remark", "comments"] }
+];
+const PAT = [
+  { k: "name", l: "Patient name", syn: ["patientname", "name", "patient", "fullname", "clientname"] },
+  { k: "mobile", l: "Mobile number", syn: ["mobile", "phone", "mobilenumber", "phonenumber", "contact", "contactnumber", "mobileno", "phoneno", "cell"] },
+  { k: "city", l: "City", syn: ["city", "town", "location", "address"] },
+  { k: "notes", l: "Notes", syn: ["notes", "note", "remarks", "remark", "comments"] }
+];
+const EXP = [
+  { k: "name", l: "Expense name", syn: ["expensename", "name", "description", "item", "vendor", "particulars", "title"] },
+  { k: "category", l: "Category", syn: ["category", "type", "expensetype", "head"] },
+  { k: "amount", l: "Amount", syn: ["amount", "cost", "price", "total", "expense", "amountpaid", "value"] },
+  { k: "date", l: "Date", syn: ["date", "expensedate"] },
+  { k: "notes", l: "Notes", syn: ["notes", "note", "remarks", "remark", "comments"] }
+];
+
+const $ = (id) => document.getElementById(id);
+function h(tag, props) {
+  const e = document.createElement(tag);
+  let val;
+  const kids = Array.prototype.slice.call(arguments, 2);
+  if (props) for (const k in props) {
+    const v = props[k];
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k === "value") val = v;
+    else if (k === "checked" || k === "disabled") e[k] = !!v;
+    else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v);
+    else if (v != null && v !== false) e.setAttribute(k, v);
+  }
+  kids.forEach(function put(c) {
+    if (Array.isArray(c)) return c.forEach(put);
+    if (c == null || c === false) return;
+    e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  });
+  if (val !== undefined) e.value = val;
+  return e;
+}
+const norm = (s) => String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9]/g, "");
+function scoreHeader(row) {
+  const all = PAY.concat(PAT).concat(EXP);
+  return row.reduce((n, c) => n + (all.some((f) => f.syn.indexOf(norm(c)) >= 0) ? 1 : 0), 0);
+}
+function autoMap(fields, headers) {
+  const nh = headers.map(norm), map = {}, conf = {}, used = new Set();
+  fields.forEach((f) => { map[f.k] = -1; });
+  fields.forEach((f) => {
+    const i = nh.findIndex((x, ix) => !used.has(ix) && x && f.syn.indexOf(x) >= 0);
+    if (i >= 0) { map[f.k] = i; conf[f.k] = "high"; used.add(i); }
+  });
+  fields.forEach((f) => {
+    if (map[f.k] >= 0) return;
+    let best = -1, bl = 0;
+    nh.forEach((x, ix) => {
+      if (used.has(ix) || !x) return;
+      f.syn.forEach((s) => { if (s.length >= 5 && x.indexOf(s) >= 0 && s.length > bl) { bl = s.length; best = ix; } });
+    });
+    if (best >= 0) { map[f.k] = best; conf[f.k] = "medium"; used.add(best); }
+  });
+  return { map, conf };
+}
+
+/* ---------- parsing helpers ---------- */
+const MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+function mkDate(y, m, d) {
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+}
+function parseDate(s) {
+  s = String(s).trim();
+  let m;
+  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) { const iso = mkDate(+m[1], +m[2], +m[3]); return iso ? { iso: iso, ambig: false } : null; }
+  if ((m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2}|\d{4})$/))) {
+    const a = +m[1], b = +m[2], short = m[3].length === 2;
+    let y = +m[3]; if (short) y += 2000;
+    let d = a, mo = b;
+    if (mo > 12 && d <= 12) { d = b; mo = a; }
+    const iso = mkDate(y, mo, d);
+    if (!iso) return null;
+    return { iso: iso, ambig: short || (a <= 12 && b <= 12 && a !== b) };
+  }
+  if ((m = s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})$/))) {
+    const mo = MON[m[2].slice(0, 3).toLowerCase()]; const iso = mo && mkDate(+m[3], mo, +m[1]);
+    return iso ? { iso: iso, ambig: false } : null;
+  }
+  if ((m = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/))) {
+    const mo = MON[m[1].slice(0, 3).toLowerCase()]; const iso = mo && mkDate(+m[3], mo, +m[2]);
+    return iso ? { iso: iso, ambig: false } : null;
+  }
+  return null;
+}
+function parseAmount(s) {
+  s = String(s).trim();
+  if (s === "") return 0;
+  s = s.replace(/\u20B9|rs\.?|inr|,|\s/gi, "");
+  return /^-?\d+(\.\d+)?$/.test(s) ? Math.round(parseFloat(s) * 100) / 100 : NaN;
+}
+function parseMobile(s) {
+  s = String(s).trim();
+  if (!s) return { ok: true, val: "" };
+  const d = s.replace(/\D/g, "");
+  if (d.length < 10 || d.length > 12) return { ok: false };
+  return { ok: true, val: (s.charAt(0) === "+" ? "+" : "") + d };
+}
+const last10 = (s) => String(s || "").replace(/\D/g, "").slice(-10);
+const sumFees = (f) => Object.keys(f || {}).reduce((n, k) => n + (Number(f[k]) || 0), 0);
+const payKey = (d) => String(d.patient).trim().toLowerCase() + "|" + d.date + "|" + sumFees(d.fees).toFixed(2);
+const expKey = (d) => String(d.name).trim().toLowerCase() + "|" + d.date + "|" + (Number(d.amount) || 0).toFixed(2);
+
+/* ---------- libraries and file reading ---------- */
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error("Could not load a required library"));
+    document.head.appendChild(s);
+  });
+}
+async function loadLib(urls, test) {
+  if (test()) return;
+  let last;
+  for (const u of urls) { try { await loadScript(u); if (test()) return; } catch (e) { last = e; } }
+  throw last || new Error("Could not load a required library");
+}
+const needXLSX = () => loadLib(["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js", "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"], () => window.XLSX);
+const needMammoth = () => loadLib(["https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js", "https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"], () => window.mammoth);
+async function needPdf() {
+  if (window.pdfjsLib) return;
+  const sets = [
+    ["https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js", "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"],
+    ["https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js", "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js"]
+  ];
+  let last;
+  for (const s of sets) {
+    try { await loadScript(s[0]); if (window.pdfjsLib) { window.pdfjsLib.GlobalWorkerOptions.workerSrc = s[1]; return; } } catch (e) { last = e; }
+  }
+  throw last || new Error("Could not load a required library");
+}
+function cellStr(c) {
+  if (c instanceof Date) {
+    const d = new Date(c.getTime() + 12 * 3600 * 1000);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  return String(c == null ? "" : c).trim();
+}
+async function readFile(file) {
+  const ext = extOf(file);
+  if (ext === "docx") {
+    await needMammoth();
+    const res = await window.mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+    const dom = new DOMParser().parseFromString(res.value, "text/html");
+    const tables = Array.prototype.slice.call(dom.querySelectorAll("table")).map((t) =>
+      Array.prototype.slice.call(t.querySelectorAll("tr")).map((tr) => Array.prototype.slice.call(tr.children).map((td) => td.textContent.trim()))
+    ).filter((t) => t.length >= 2);
+    if (!tables.length) throw new Error("No table found in this Word document. Records must be in a table with a header row.");
+    tables.sort((a, b) => scoreHeader(b[0]) - scoreHeader(a[0]) || b.length - a.length);
+    return { rows: tables[0], sheet: "Word table" };
+  }
+  await needXLSX();
+  const wb = ext === "csv"
+    ? window.XLSX.read(await file.text(), { type: "string", cellDates: true })
+    : window.XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
+  for (const name of wb.SheetNames) {
+    const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: "" }).map((r) => r.map(cellStr));
+    if (rows.filter((r) => r.some((c) => c !== "")).length >= 2) return { rows: rows, sheet: name };
+  }
+  throw new Error("No data rows found in this file.");
+}
+
+/* ---------- state and shell ---------- */
+let S = null;
+const overlay = h("div", { id: "impOverlay" });
+const panel = h("div", { id: "impPanel" });
+overlay.append(panel);
+document.body.appendChild(overlay);
+
+function reset(type) {
+  S = { type: type, fileName: "", source: "file", sheet: "", headers: [], body: [], map: {}, conf: {}, amountType: "", defaultStatus: "pending", recs: [], existing: [], exPay: new Map(), exExp: new Map(), onlyAttn: false, scan: null, pending: null, runId: 0 };
+}
+function openImport(type) { reset(type); overlay.classList.add("open"); stepFile(); }
+function closeImport() { overlay.classList.remove("open"); panel.replaceChildren(); S = null; }
+function head(title, noHist) {
+  return h("div", { class: "imp-head" }, h("h2", { text: title }),
+    h("div", { style: "display:flex;gap:8px" },
+      noHist ? null : h("button", { class: "imp-btn sec", type: "button", onclick: stepHistory, text: "Import History" }),
+      h("button", { class: "imp-btn sec", type: "button", onclick: closeImport, "aria-label": "Close", text: "Close" })));
+}
+function fieldsOf() { return S.type === "payments" ? PAY : S.type === "expenses" ? EXP : PAT; }
+function toast(msg) { alert(msg); }
+const chip = (t, c) => h("span", { class: "imp-chip " + c, text: t });
+const note = (t) => h("div", { class: "imp-note", text: t });
+
+/* ---------- step 1: choose a source ---------- */
+const IMG_EXT = ["jpg", "jpeg", "png", "webp"];
+function extOf(f) { return (f.name.split(".").pop() || "").toLowerCase(); }
+function kindOf(f) {
+  const e = extOf(f);
+  if (IMG_EXT.indexOf(e) >= 0 || /^image\/(jpeg|png|webp)$/.test(f.type)) return "image";
+  if (e === "pdf") return "pdf";
+  if (["csv", "xlsx", "xls", "docx"].indexOf(e) >= 0) return "table";
+  if (e === "doc") return "doc";
+  return "bad";
+}
+function stepFile() {
+  const mk = function (accept, multiple, capture) {
+    const i = h("input", { type: "file", accept: accept, style: "display:none" });
+    if (multiple) i.multiple = true;
+    if (capture) i.setAttribute("capture", "environment");
+    i.addEventListener("change", function () { const f = Array.prototype.slice.call(i.files); i.value = ""; if (f.length) routeFiles(f); });
+    return i;
+  };
+  const IMG = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
+  const inputs = { cam: mk("image/*", false, true), photo: mk(IMG, true), pdf: mk(".pdf,application/pdf"), sheet: mk(".csv,.xlsx,.xls"), word: mk(".docx"), any: mk(IMG + ",.pdf,.csv,.xlsx,.xls,.docx", true) };
+  const tile = (label, key, primary) => h("button", { class: "imp-btn" + (primary ? "" : " sec"), type: "button", onclick: () => inputs[key].click(), text: label });
+  panel.replaceChildren(head("Smart Import"),
+    h("p", { class: "imp-muted", text: "Import patients, payments and expenses from photos, camera, PDFs, Excel, CSV and Word documents. You will review everything before anything is saved." }),
+    h("div", { class: "imp-tiles" },
+      tile("Take Photo", "cam", true), tile("Upload Photo", "photo"), tile("Upload PDF", "pdf"),
+      tile("Upload Excel / CSV", "sheet"), tile("Upload Word Document", "word"), tile("Upload File", "any")),
+    Object.keys(inputs).map((k) => inputs[k]),
+    note("Privacy: Excel, CSV and Word files are read inside your browser. Photos and PDF pages are sent securely to an AI service to read them, and are not stored. Only the records you confirm are saved to your clinic account."),
+    h("p", { class: "imp-muted", text: "Take Photo opens your device camera on phones and tablets. If it does not open, allow camera access for this site in your browser settings, or use Upload Photo instead." }));
+}
+function failView(msg) {
+  if (!S) return;
+  panel.replaceChildren(head("Smart Import"),
+    h("div", { class: "imp-err" }, h("strong", { text: "We couldn't read this document" }), h("p", { class: "imp-muted", text: msg })),
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn", type: "button", onclick: stepFile, text: "Try Again" }),
+      h("button", { class: "imp-btn sec", type: "button", onclick: stepFile, text: "Upload Another File" }),
+      h("button", { class: "imp-btn sec", type: "button", onclick: () => { closeImport(); const b = $("addBtn"); if (b) b.click(); }, text: "Enter Data Manually" })));
+}
+function routeFiles(files) {
+  if (!S) return;
+  const kinds = files.map(kindOf);
+  if (kinds.indexOf("doc") >= 0) return failView("Old .doc files are not supported. Open it in Word, save it as .docx and upload it again.");
+  if (kinds.indexOf("bad") >= 0) return failView("Unsupported file type. Use a JPG, PNG or WEBP photo, a PDF, an Excel or CSV file, or a Word (.docx) file.");
+  const tooBig = files.some((f) => f.size > (kindOf(f) === "table" ? 10 : 25) * 1024 * 1024);
+  if (tooBig) return failView("This file is too large. Photos and PDFs can be up to 25 MB, and spreadsheets and Word files up to 10 MB.");
+  if (kinds.every((k) => k === "image")) {
+    if (files.length > 6) return failView("Please choose at most 6 photos at a time.");
+    return startImages(files);
+  }
+  if (files.length > 1) return failView("Please choose one PDF, spreadsheet or Word file at a time, or only photos.");
+  if (kinds[0] === "pdf") return startPdf(files[0]);
+  return handleFile(files[0]);
+}
+
+/* ---------- photos and PDFs: prepare, preview, scan ---------- */
+function canvasJpeg(src, w0, h0) {
+  const sc = Math.min(1, 1600 / Math.max(w0, h0, 1));
+  const w = Math.max(1, Math.round(w0 * sc)), hh = Math.max(1, Math.round(h0 * sc));
+  const c = document.createElement("canvas");
+  c.width = w; c.height = hh;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, w, hh); g.drawImage(src, 0, 0, w, hh);
+  let q = 0.82, url = c.toDataURL("image/jpeg", q);
+  while (url.length > 2800000 && q > 0.4) { q -= 0.15; url = c.toDataURL("image/jpeg", q); }
+  return { data: url.slice(url.indexOf(",") + 1), preview: url };
+}
+async function toJpeg(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise(function (res, rej) {
+      const i = new Image();
+      i.onload = function () { res(i); };
+      i.onerror = function () { rej(new Error("decode")); };
+      i.src = url;
+    });
+    return canvasJpeg(img, img.naturalWidth, img.naturalHeight);
+  } finally { URL.revokeObjectURL(url); }
+}
+async function startImages(files) {
+  panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Preparing " + (files.length > 1 ? "photos" : "photo") + " ..." }));
+  try {
+    const imgs = [];
+    for (const f of files) imgs.push(await toJpeg(f));
+    if (!S) return;
+    S.pending = { images: imgs, fileName: files.length === 1 ? files[0].name : files.length + " photos", kind: "photo", truncated: false, total: imgs.length };
+    stepScanPreview();
+  } catch (e) { failView("Unable to read this image. Please upload a clearer photo."); }
+}
+async function startPdf(file) {
+  panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Reading " + file.name + " ..." }));
+  try {
+    await needPdf();
+    const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const total = pdf.numPages, n = Math.min(total, 10);
+    const imgs = [];
+    for (let p = 1; p <= n; p++) {
+      if (!S) return;
+      panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Preparing page " + p + " of " + n + " ..." }));
+      const page = await pdf.getPage(p);
+      const vp1 = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: Math.min(3, 1600 / Math.max(vp1.width, vp1.height)) });
+      const c = document.createElement("canvas");
+      c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+      await page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+      imgs.push(canvasJpeg(c, c.width, c.height));
+    }
+    if (!S) return;
+    S.pending = { images: imgs, fileName: file.name, kind: "pdf", truncated: total > n, total: total };
+    stepScanPreview();
+  } catch (e) { failView("Unable to read this PDF. If it is password protected, remove the password and try again."); }
+}
+function stepScanPreview() {
+  const p = S.pending;
+  panel.replaceChildren(head("Check Before Scanning", true),
+    h("p", { class: "imp-muted", text: p.fileName + " - " + p.images.length + (p.kind === "pdf" ? " page(s)" : " image(s)") }),
+    h("div", { class: "imp-thumbs" }, p.images.map((im) => h("img", { src: im.preview, alt: "Preview" }))),
+    p.kind === "pdf" ? note("This PDF will be read as page images. If it contains scanned pages, processing may take a little longer.") : null,
+    p.truncated ? h("div", { class: "imp-warn", text: "This PDF has " + p.total + " pages. Only the first 10 will be scanned." }) : null,
+    note("Privacy: the image is sent securely to an AI service to read it and is not stored. Nothing is saved until you review and confirm."),
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn sec", type: "button", onclick: closeImport, text: "Cancel" }),
+      h("button", { class: "imp-btn sec", type: "button", onclick: stepFile, text: "Choose Another" }),
+      h("button", { class: "imp-btn", type: "button", onclick: runScan, text: "Scan & Read" })));
+}
+function scanErr(msg) { const e = new Error(msg); e.userMessage = msg; return e; }
+function msgFor(status) {
+  if (status === 401) return "Your session has expired. Please sign in again.";
+  if (status === 413) return "This upload is too large. Try fewer or smaller pages.";
+  if (status === 503) return "Scanning is not available right now. Please try again later.";
+  return "The scanning service could not process this document. Please try again.";
+}
+const JOIN = (list) => list.filter(Boolean).join("; ");
+function lowKeys(v, c, keys) { return keys.filter((k) => v[k] && (c[k] || "low") === "low"); }
+function fromRec(rec, n) {
+  const f = rec.fields || {}, c = Object.assign({}, rec.confidence || {});
+  let v, type, extra = "", low = [];
+  if (rec.type === "payment") {
+    type = "payments";
+    v = { patient: f.patient || "", date: f.date || "", counselling: f.counselling || "", medicine: f.medicine || "", referral: f.referral || "", other: f.other || "", total: f.total || "", status: f.status || "", notes: JOIN([f.notes, f.method && ("Payment method: " + f.method), f.reference && ("Reference: " + f.reference)]) };
+    if (!FEES.some((k) => v[k]) && v.total) { v.other = v.total; c.other = c.total; v.total = ""; extra = "Only a total was found, so it is filed under Other. Change the fee type if needed."; }
+    low = lowKeys(v, c, ["patient", "date", "counselling", "medicine", "referral", "other", "total", "status"]);
+  } else if (rec.type === "patient") {
+    type = "patients";
+    v = { name: f.name || "", mobile: f.mobile || "", city: f.city || "", notes: JOIN([f.notes, f.age && ("Age: " + f.age), f.gender && ("Gender: " + f.gender), f.email && ("Email: " + f.email), f.address && ("Address: " + f.address), f.patientId && ("Patient ID: " + f.patientId)]) };
+    low = lowKeys(v, c, ["name", "mobile", "city"]);
+  } else if (rec.type === "expense") {
+    type = "expenses";
+    v = { name: f.vendor || f.description || "", category: f.category || "", amount: f.amount || "", date: f.date || "", notes: JOIN([f.notes, f.method && ("Payment method: " + f.method)]) };
+    if (f.vendor) c.name = c.vendor;
+    low = lowKeys(v, c, ["name", "category", "amount", "date"]);
+  } else {
+    return { type: "other", text: Object.keys(f).map((k) => k + ": " + f[k]).join(", ").slice(0, 200) };
+  }
+  return { type: type, r: { n: n, v: v, conf: c, errs: [], warns: [], dup: null, action: "skip", actionUser: false, include: false, confirmed: false, needsConfirm: false, data: null, fromScan: true, low: low, extraWarn: extra } };
+}
+async function runScan() {
+  const p = S.pending, run = ++S.runId;
+  const dead = () => !S || run !== S.runId;
+  const per = 3, batches = Math.ceil(p.images.length / per);
+  const show = (msg) => panel.replaceChildren(head("Scanning ...", true), h("p", { class: "imp-muted", text: msg }),
+    h("div", { class: "imp-actions" }, h("button", { class: "imp-btn sec", type: "button", text: "Cancel", onclick: () => { if (S) { S.runId++; stepFile(); } } })));
+  const all = { handwriting: false, records: [], warnings: [] };
+  try {
+    const user = auth.currentUser;
+    if (!user) throw scanErr("Your session has expired. Please sign in again.");
+    for (let b = 0; b < batches; b++) {
+      show("Reading " + (p.kind === "pdf" ? "pages " : "photos ") + (b * per + 1) + " to " + Math.min(p.images.length, b * per + per) + " of " + p.images.length + " ...");
+      const token = await user.getIdToken();
+      const batch = p.images.slice(b * per, b * per + per).map((im) => ({ mediaType: "image/jpeg", data: im.data }));
+      let resp;
+      try {
+        resp = await fetch(WORKER + "/scan", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ images: batch }) });
+      } catch (e) { throw scanErr("Could not reach the scanning service. Check your connection and try again."); }
+      if (dead()) return;
+      if (resp.status === 422) continue;
+      if (!resp.ok) throw scanErr(msgFor(resp.status));
+      const out = await resp.json();
+      const res = out && out.result;
+      if (res) {
+        if (res.handwriting) all.handwriting = true;
+        (res.records || []).forEach((r) => all.records.push(r));
+        (res.warnings || []).forEach((w) => all.warnings.push(w));
+      }
+    }
+    if (dead()) return;
+    const groups = { payments: [], patients: [], expenses: [], other: [] };
+    let n = 0;
+    all.records.forEach((rec) => {
+      const x = fromRec(rec, ++n);
+      if (x.type === "other") groups.other.push(x.text); else groups[x.type].push(x.r);
+    });
+    S.pending = null;
+    if (!all.records.length) return failView("No readable information was detected. Please upload a clearer photo.");
+    S.scan = { groups: groups, handwriting: all.handwriting, warnings: all.warnings.slice(0, 5), done: {} };
+    S.fileName = p.fileName; S.source = "scan";
+    stepScanGroups();
+  } catch (e) {
+    if (dead()) return;
+    failView(e && e.userMessage ? e.userMessage : "Unable to read this document. Please upload a clearer photo.");
+  }
+}
+function stepScanGroups() {
+  const sc = S.scan, g = sc.groups;
+  const cards = ["payments", "patients", "expenses"].filter((t) => g[t].length).map((t) => {
+    const done = !!sc.done[t];
+    return h("div", { class: "imp-rec" },
+      h("div", { class: "imp-rh" }, h("strong", { text: g[t].length + " " + TYPE_L[t].toLowerCase() + " detected" }), done ? chip("Imported", "ok") : null),
+      h("button", { class: "imp-btn", type: "button", disabled: done, text: done ? "Done" : "Review " + TYPE_L[t], onclick: () => reviewGroup(t) }));
+  });
+  panel.replaceChildren(head("Data Detected", true),
+    h("p", { class: "imp-muted", text: S.fileName + ". Choose a group to review. Nothing is saved until you confirm." }),
+    sc.handwriting ? h("div", { class: "imp-warn", text: "Handwriting was detected. Reading handwriting can be uncertain, so please check every value." }) : null,
+    sc.warnings.map((w) => note(w)),
+    cards,
+    g.other.length ? h("div", { class: "imp-note" }, h("strong", { text: g.other.length + " item(s) cannot be imported" }), h("div", { class: "imp-muted", text: "Appointments and other clinic data have no place in the app yet, so they will not be saved." }), g.other.slice(0, 8).map((t) => h("div", { class: "imp-muted", text: t }))) : null,
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn sec", type: "button", onclick: closeImport, text: "Close" }),
+      h("button", { class: "imp-btn sec", type: "button", onclick: stepFile, text: "Scan Another" })));
+}
+async function reviewGroup(t) {
+  S.type = t;
+  panel.replaceChildren(head("Review Imported Data", true), h("p", { class: "imp-muted", text: "Checking for duplicates ..." }));
+  try { await loadExisting(); } catch (e) { return failView("Could not check your existing records for duplicates. Nothing was imported."); }
+  if (!S) return;
+  S.recs = S.scan.groups[t];
+  revalidateAll();
+  S.recs.forEach((r) => { r.include = !r.errs.length && !r.needsConfirm; });
+  stepReview();
+}
+
+/* ---------- spreadsheets and Word: read, map columns ---------- */
+async function handleFile(file) {
+  S.scan = null; S.source = "file";
+  panel.replaceChildren(head("Smart Import", true), h("p", { class: "imp-muted", text: "Reading " + file.name + " ..." }));
+  try {
+    const r = await readFile(file);
+    if (!S) return;
+    const rows = r.rows.filter((x) => x.some((c) => c !== ""));
+    if (rows.length < 2) throw new Error("No data rows found in this file.");
+    let hi = 0, best = -1;
+    rows.slice(0, 10).forEach((x, i) => { const sc = scoreHeader(x); if (sc > best) { best = sc; hi = i; } });
+    S.fileName = file.name; S.sheet = r.sheet;
+    S.headers = rows[hi].map((x, i) => x || ("Column " + (i + 1)));
+    S.body = rows.slice(hi + 1);
+    const pm = autoMap(PAY, S.headers), em = autoMap(EXP, S.headers);
+    const feesIn = FEES.some((k) => pm.map[k] >= 0);
+    if (pm.map.patient >= 0 && (feesIn || (pm.map.total >= 0 && em.map.category < 0))) S.type = "payments";
+    else if (em.map.amount >= 0 && em.map.category >= 0) S.type = "expenses";
+    else S.type = "patients";
+    remap();
+    stepMap();
+  } catch (e) { failView(e && e.message ? e.message : String(e)); }
+}
+function remap() { const m = autoMap(fieldsOf(), S.headers); S.map = m.map; S.conf = m.conf; S.amountType = ""; }
+function stepMap() {
+  const fields = fieldsOf();
+  const t = S.type, pay = t === "payments";
+  const feesMapped = pay && FEES.some((k) => S.map[k] >= 0);
+  const amountMode = pay && !feesMapped && S.map.total >= 0;
+  const okName = S.map[pay ? "patient" : "name"] >= 0;
+  const okAmt = pay ? (feesMapped || S.map.total >= 0) : (t === "expenses" ? S.map.amount >= 0 : true);
+  const okType = !amountMode || !!S.amountType;
+  const typeSel = h("select", { class: "imp-sel", onchange: (e) => { S.type = e.target.value; remap(); stepMap(); } },
+    h("option", { value: "payments", text: "Payments" }), h("option", { value: "patients", text: "Patients" }), h("option", { value: "expenses", text: "Expenses" }));
+  typeSel.value = t;
+  const rows = fields.map((f) => {
+    const sel = h("select", { class: "imp-sel", onchange: (e) => { S.map[f.k] = Number(e.target.value); S.conf[f.k] = S.map[f.k] >= 0 ? "manual" : ""; stepMap(); } },
+      h("option", { value: "-1", text: "(not in file)" }),
+      S.headers.map((hd, i) => h("option", { value: String(i), text: hd })));
+    sel.value = String(S.map[f.k]);
+    const c = S.conf[f.k];
+    return h("div", { class: "imp-row" }, h("div", { text: f.l }), sel,
+      h("span", { class: "imp-badge " + (c || ""), text: c === "high" ? "Exact match" : c === "medium" ? "Check this" : c === "manual" ? "Chosen by you" : "Not mapped" }));
+  });
+  const extra = [];
+  if (amountMode) {
+    const as = h("select", { class: "imp-sel", onchange: (e) => { S.amountType = e.target.value; stepMap(); } },
+      h("option", { value: "", text: "Choose fee type..." }), FEES.map((k) => h("option", { value: k, text: FEE_L[k] })));
+    as.value = S.amountType;
+    extra.push(h("div", { class: "imp-row" }, h("div", { text: "The Amount column is for" }), as, h("span", { class: "imp-badge", text: "Required" })));
+  }
+  if (pay) {
+    const ds = h("select", { class: "imp-sel", onchange: (e) => { S.defaultStatus = e.target.value; } },
+      h("option", { value: "pending", text: "Pending" }), h("option", { value: "paid", text: "Paid" }));
+    ds.value = S.defaultStatus;
+    extra.push(h("div", { class: "imp-row" }, h("div", { text: "Rows with no status are" }), ds, h("span", { class: "imp-badge", text: "Default" })));
+  }
+  const ready = okName && okAmt && okType;
+  panel.replaceChildren(head("Match Columns"),
+    h("p", { class: "imp-muted", text: S.fileName + " - " + S.body.length + " rows found (" + S.sheet + ")" }),
+    h("div", { class: "imp-row" }, h("div", { text: "Import as" }), typeSel, h("span", { class: "imp-badge", text: "Detected" })),
+    rows, extra,
+    ready ? null : h("p", { class: "imp-muted", text: "Choose the name column" + (pay ? ", and at least one fee or amount column" : t === "expenses" ? ", and the amount column" : "") + (amountMode && !S.amountType ? ", and the fee type for the Amount column" : "") + " to continue." }),
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn sec", type: "button", onclick: stepFile, text: "Back" }),
+      h("button", { class: "imp-btn", type: "button", disabled: !ready, onclick: buildAndReview, text: "Continue to Review" })));
+}
+
+/* ---------- validation and duplicates ---------- */
+function dateCheck(val, r, errs, warns) {
+  if (!val) { errs.push("Date is missing"); return ""; }
+  const d = parseDate(val);
+  if (!d) { errs.push("Date not understood (use DD/MM/YYYY)"); return ""; }
+  if (d.ambig && !r.confirmed) { warns.push("Check date: read as " + d.iso); r.needsConfirm = true; }
+  return d.iso;
+}
+function validate(r) {
+  const v = r.v, errs = [], warns = [];
+  r.needsConfirm = false; r.data = null;
+  if (S.type === "payments") {
+    if (!v.patient) errs.push("Patient name is missing");
+    const iso = dateCheck(v.date, r, errs, warns);
+    const fees = {}; let sum = 0, bad = false;
+    FEES.forEach((k) => {
+      const n = parseAmount(v[k]);
+      if (isNaN(n)) { errs.push(FEE_L[k] + " is not a valid amount"); bad = true; }
+      else if (n < 0) { errs.push(FEE_L[k] + " cannot be negative"); bad = true; }
+      else if (n > 0) { fees[k] = n; sum += n; }
+    });
+    if (!bad && !Object.keys(fees).length) errs.push("No fee amount entered");
+    if (v.total) {
+      const t = parseAmount(v.total);
+      if (isNaN(t) || t < 0) errs.push("Total is not a valid amount");
+      else if (!bad && Math.abs(t - sum) > 0.01) errs.push("Total " + t + " does not match fees " + sum);
+    }
+    const st = String(v.status || "").trim().toLowerCase();
+    let status = "";
+    if (!st) status = S.defaultStatus;
+    else if (/^(paid|received|yes|y|done|completed?)$/.test(st)) status = "paid";
+    else if (/^(pending|unpaid|due|no|n)$/.test(st)) status = "pending";
+    else errs.push("Status not understood (use Paid or Pending)");
+    if (!errs.length) r.data = { patient: v.patient, date: iso, notes: v.notes || "", status: status, paidAt: status === "paid" ? iso : null, fees: fees };
+  } else if (S.type === "expenses") {
+    if (!v.name) errs.push("Expense name is missing");
+    const iso = dateCheck(v.date, r, errs, warns);
+    const amt = parseAmount(v.amount);
+    if (isNaN(amt) || amt <= 0) errs.push("Amount must be a number greater than zero");
+    let cat = CATS.filter((c) => c.toLowerCase() === String(v.category || "").trim().toLowerCase())[0];
+    if (!cat) { cat = "Other"; if (!r.confirmed) { warns.push("Category not recognised - it will be saved as Other"); r.needsConfirm = true; } }
+    if (!errs.length) r.data = { name: v.name, category: cat, amount: amt, date: iso, notes: v.notes || "", createdAt: new Date().toISOString() };
+  } else {
+    if (!v.name) errs.push("Patient name is missing");
+    const m = parseMobile(v.mobile);
+    if (!m.ok) errs.push("Mobile number is not valid");
+    if (!errs.length) r.data = { name: v.name, mobile: m.val, city: v.city || "", notes: v.notes || "", createdAt: new Date().toISOString() };
+  }
+  if (r.fromScan && !r.confirmed) {
+    if (r.extraWarn) { warns.push(r.extraWarn); r.needsConfirm = true; }
+    if (r.low && r.low.length) { warns.push("Please check: " + r.low.join(", ")); r.needsConfirm = true; }
+  }
+  r.errs = errs; r.warns = warns;
+}
+function dupKeyOf(r) {
+  if (S.type === "payments") return payKey(r.data);
+  if (S.type === "expenses") return expKey(r.data);
+  return last10(r.data.mobile) ? "m" + last10(r.data.mobile) : "n" + r.data.name.toLowerCase();
+}
+function findExisting(r) {
+  if (S.type === "payments") return S.exPay.get(payKey(r.data)) || null;
+  if (S.type === "expenses") return S.exExp.get(expKey(r.data)) || null;
+  const nm = r.data.name.toLowerCase(), mk = last10(r.data.mobile);
+  return S.existing.filter((p) => {
+    const pm = last10(p.mobile), pn = String(p.name || "").trim().toLowerCase();
+    return (mk && pm) ? mk === pm : pn === nm;
+  })[0] || null;
+}
+function revalidateAll() {
+  const seen = new Map();
+  S.recs.forEach((r) => {
+    validate(r); r.dup = null;
+    if (!r.errs.length) {
+      const key = dupKeyOf(r), ex = findExisting(r);
+      if (ex) r.dup = { kind: "existing", ex: ex };
+      else if (seen.has(key)) r.dup = { kind: "file", of: seen.get(key) };
+      else seen.set(key, r.n);
+    }
+    if (r.dup) { if (!r.actionUser) r.action = "skip"; } else r.action = "new";
+  });
+}
+async function loadExisting() {
+  if (!auth.currentUser) throw new Error("Please sign in again.");
+  const snap = await getDocs(query(collection(db, COL[S.type]), where("userId", "==", auth.currentUser.uid)));
+  S.existing = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+  S.exPay = new Map(); S.exExp = new Map();
+  if (S.type === "payments") S.existing.forEach((e) => { if (e.patient && e.date) S.exPay.set(payKey(e), e); });
+  if (S.type === "expenses") S.existing.forEach((e) => { if (e.name && e.date) S.exExp.set(expKey(e), e); });
+}
+
+/* ---------- review ---------- */
+async function buildAndReview() {
+  const fields = fieldsOf(), pay = S.type === "payments";
+  const amountMode = pay && !FEES.some((k) => S.map[k] >= 0) && S.map.total >= 0;
+  panel.replaceChildren(head("Review Imported Data", true), h("p", { class: "imp-muted", text: "Checking for duplicates ..." }));
+  try { await loadExisting(); }
+  catch (e) { return failView("Could not check your existing records for duplicates (" + (e && e.message ? e.message : e) + "). Nothing was imported."); }
+  if (!S) return;
+  S.recs = S.body.map((row, i) => {
+    const v = {};
+    fields.forEach((f) => { const ix = S.map[f.k]; v[f.k] = ix >= 0 && ix < row.length ? String(row[ix]).trim() : ""; });
+    if (amountMode) { v[S.amountType] = v.total; v.total = ""; }
+    return { n: i + 1, v: v, conf: {}, errs: [], warns: [], dup: null, action: "skip", actionUser: false, include: false, confirmed: false, needsConfirm: false, data: null, fromScan: false, low: [], extraWarn: "" };
+  }).filter((r) => Object.keys(r.v).some((k) => r.v[k] !== ""));
+  revalidateAll();
+  S.recs.forEach((r) => { r.include = !r.errs.length && !r.needsConfirm; });
+  stepReview();
+}
+function stepReview() {
+  const t = S.type;
+  const list = h("div");
+  S.recs.forEach((r) => {
+    const mk = (k, label) => {
+      const inp = h("input", { class: "imp-in", value: r.v[k] || "", inputmode: (k === "mobile" || k === "total" || k === "amount" || FEES.indexOf(k) >= 0) ? "decimal" : null });
+      inp.addEventListener("input", () => { r.v[k] = inp.value.trim(); if (k === "date" || r.fromScan) r.confirmed = true; revalidateAll(); refreshAll(); });
+      const lv = r.conf && r.conf[k];
+      const badge = (r.fromScan && r.v[k] && k !== "notes") ? chip(lv === "high" ? "\u2713 High" : lv === "medium" ? "\u26A0 Medium" : "\u26A0 Low", lv === "high" ? "ok" : lv === "medium" ? "warn" : "err") : null;
+      return h("div", null, h("label", null, label + " ", badge), inp);
+    };
+    const cb = h("input", { type: "checkbox", style: "width:20px;height:20px" });
+    cb.addEventListener("change", () => { r.include = cb.checked; if (cb.checked) r.confirmed = true; revalidateAll(); refreshAll(); });
+    const chips = h("span", { style: "display:flex;flex-wrap:wrap;gap:6px" });
+    const dupBox = h("div");
+    const grid = t === "payments"
+      ? h("div", { class: "imp-grid" }, mk("patient", "Patient"), mk("date", "Date"), mk("counselling", "Counselling"), mk("medicine", "Medicine"), mk("referral", "Referral"), mk("other", "Other"), r.v.total ? mk("total", "Total") : null, mk("status", "Status (Paid/Pending)"), mk("notes", "Notes"))
+      : t === "expenses"
+        ? h("div", { class: "imp-grid" }, mk("name", "Expense name"), mk("category", "Category"), mk("amount", "Amount"), mk("date", "Date"), mk("notes", "Notes"))
+        : h("div", { class: "imp-grid" }, mk("name", "Name"), mk("mobile", "Mobile"), mk("city", "City"), mk("notes", "Notes"));
+    const card = h("div", { class: "imp-rec" }, h("div", { class: "imp-rh" }, cb, h("strong", { text: "Row " + r.n }), chips), grid, dupBox);
+    r.ui = { card: card, cb: cb, chips: chips, dupBox: dupBox };
+    list.append(card);
+  });
+  const sum = h("div", { class: "imp-sum" });
+  const confirmBtn = h("button", { class: "imp-btn", type: "button", onclick: () => doImport(confirmBtn), text: "Confirm & Import" });
+  S.ui = { sum: sum, confirmBtn: confirmBtn };
+  const attn = h("input", { type: "checkbox" });
+  attn.addEventListener("change", () => { S.onlyAttn = attn.checked; refreshAll(); });
+  panel.replaceChildren(head("Review Imported Data", true),
+    h("p", { class: "imp-muted", text: S.fileName + " - importing as " + TYPE_L[t] + ". Nothing is saved until you press Confirm & Import." }),
+    (S.scan && S.scan.handwriting) ? h("div", { class: "imp-warn", text: "Handwriting was detected. Reading handwriting can be uncertain, so please check every value." }) : null,
+    sum,
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn sec", type: "button", text: "Select all ready", onclick: () => { S.recs.forEach((r) => { r.include = !r.errs.length && !r.needsConfirm; }); refreshAll(); } }),
+      h("button", { class: "imp-btn sec", type: "button", text: "Clear selection", onclick: () => { S.recs.forEach((r) => { r.include = false; }); refreshAll(); } }),
+      h("label", { style: "display:flex;align-items:center;gap:6px;font-size:14px" }, attn, "Show only rows that need attention")),
+    list,
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn sec", type: "button", onclick: S.scan ? stepScanGroups : stepMap, text: "Back" }),
+      h("button", { class: "imp-btn sec", type: "button", onclick: closeImport, text: "Cancel" }),
+      confirmBtn));
+  refreshAll();
+}
+function refreshCard(r) {
+  const u = r.ui;
+  u.chips.replaceChildren();
+  r.errs.forEach((x) => u.chips.append(chip(x, "err")));
+  r.warns.forEach((x) => u.chips.append(chip(x, "warn")));
+  if (r.dup) u.chips.append(chip(r.dup.kind === "existing" ? "Possible duplicate" : "Duplicate within file", "dup"));
+  if (!r.errs.length && !r.warns.length && !r.dup) u.chips.append(chip("Ready", "ok"));
+  u.cb.disabled = r.errs.length > 0;
+  if (r.errs.length) r.include = false;
+  u.cb.checked = r.include;
+  u.card.classList.toggle("imp-bad", r.errs.length > 0);
+  u.dupBox.replaceChildren();
+  if (r.dup) {
+    const ex = r.dup.ex;
+    let what;
+    if (r.dup.kind === "file") what = "Same as row " + r.dup.of + " in this import.";
+    else if (S.type === "patients") what = "Already in your patients: " + (ex.name || "") + (ex.mobile ? " (" + ex.mobile + ")" : "") + ".";
+    else if (S.type === "expenses") what = "Already in your expenses: " + ex.name + " on " + ex.date + ".";
+    else what = "Already in your payments: " + ex.patient + " on " + ex.date + ".";
+    const canUpdate = r.dup.kind === "existing" && S.type !== "expenses";
+    const sel = h("select", { class: "imp-sel", style: "max-width:320px", onchange: (e) => { r.action = e.target.value; r.actionUser = true; updateSummary(); } },
+      h("option", { value: "skip", text: "Skip (keep existing)" }),
+      h("option", { value: "new", text: "Import as new" }),
+      canUpdate ? h("option", { value: "update", text: "Update existing record" }) : null);
+    sel.value = r.action;
+    u.dupBox.append(h("div", { class: "imp-note" }, h("div", { text: "Possible duplicate detected. " + what }), sel));
+  }
+  const need = r.errs.length || r.warns.length || r.dup;
+  u.card.style.display = (S.onlyAttn && !need) ? "none" : "";
+}
+function updateData(r) {
+  const out = {};
+  if (S.type === "patients") { ["mobile", "city", "notes"].forEach((k) => { if (r.data[k]) out[k] = r.data[k]; }); }
+  else if (S.type === "payments") {
+    if (r.data.notes) out.notes = r.data.notes;
+    if (r.data.status === "paid" && r.dup.ex.status !== "paid") { out.status = "paid"; out.paidAt = r.data.paidAt; }
+  }
+  return out;
+}
+function plan() {
+  let imp = 0, upd = 0, dupes = 0, bad = 0, ready = 0;
+  S.recs.forEach((r) => {
+    if (r.errs.length) bad++; else ready++;
+    if (r.dup) dupes++;
+    if (!r.include || r.errs.length) return;
+    if (r.dup && r.action === "skip") return;
+    if (r.dup && r.action === "update" && r.dup.kind === "existing" && S.type !== "expenses") { if (Object.keys(updateData(r)).length) upd++; }
+    else imp++;
+  });
+  return { imp: imp, upd: upd, dupes: dupes, bad: bad, ready: ready };
+}
+function updateSummary() {
+  const p = plan();
+  const review = S.recs.some((r) => r.warns.length > 0);
+  S.ui.sum.replaceChildren(h("span", { text: "Detected: " + S.recs.length }), h("span", { text: "Ready: " + p.ready }),
+    h("span", { text: "Need fixing: " + p.bad }), h("span", { text: "Duplicates: " + p.dupes }),
+    review ? h("span", { text: "Some fields need your review before importing." }) : null,
+    h("strong", { text: "Will import: " + p.imp + (p.upd ? ", update: " + p.upd : "") }));
+  S.ui.confirmBtn.disabled = (p.imp + p.upd) === 0;
+}
+function refreshAll() { S.recs.forEach(refreshCard); updateSummary(); }
+
+/* ---------- save ---------- */
+async function doImport(btn) {
+  const uid = auth.currentUser && auth.currentUser.uid;
+  if (!uid) return toast("Please sign in again.");
+  const p = plan();
+  if (p.imp + p.upd === 0) return;
+  if (p.imp + p.upd > 400) return toast("Please import at most 400 records at a time. Deselect some rows or split the file.");
+  const col = COL[S.type];
+  const batch = writeBatch(db);
+  S.recs.forEach((r) => {
+    if (!r.include || r.errs.length) return;
+    if (r.dup && r.action === "skip") return;
+    if (r.dup && r.action === "update" && r.dup.kind === "existing" && S.type !== "expenses") {
+      const u = updateData(r);
+      if (Object.keys(u).length) batch.update(doc(db, col, r.dup.ex.id), u);
+    } else batch.set(doc(collection(db, col)), Object.assign({}, r.data, { userId: uid }));
+  });
+  const skipped = S.recs.length - p.imp - p.upd;
+  const summary = { detected: S.recs.length, imported: p.imp, updated: p.upd, skipped: skipped, duplicates: p.dupes };
+  batch.set(doc(collection(db, "import_history")), Object.assign({ userId: uid, fileName: S.fileName, importType: S.type, source: S.source, status: "completed", createdAt: new Date().toISOString() }, summary));
+  btn.disabled = true; btn.textContent = "Importing ...";
+  try { await batch.commit(); stepDone(summary); }
+  catch (e) { btn.disabled = false; btn.textContent = "Confirm & Import"; toast("Import failed and nothing was saved: " + (e && e.message ? e.message : e)); }
+}
+function stepDone(s) {
+  const type = S.type, scan = S.scan;
+  if (scan) scan.done[type] = true;
+  const more = scan && ["payments", "patients", "expenses"].some((t) => scan.groups[t].length && !scan.done[t]);
+  panel.replaceChildren(head("Import Complete", true),
+    h("div", { class: "imp-note" },
+      h("div", { text: "Detected: " + s.detected }), h("div", { text: "Imported: " + s.imported }),
+      h("div", { text: "Updated: " + s.updated }), h("div", { text: "Skipped: " + s.skipped }), h("div", { text: "Duplicates found: " + s.duplicates })),
+    h("p", { class: "imp-muted", text: "Your " + TYPE_L[type] + " page updates automatically." }),
+    h("div", { class: "imp-actions" },
+      h("button", { class: "imp-btn", type: "button", onclick: closeImport, text: "Done" }),
+      more ? h("button", { class: "imp-btn sec", type: "button", onclick: stepScanGroups, text: "Back to scan results" }) : null,
+      scan ? null : h("button", { class: "imp-btn sec", type: "button", onclick: () => openImport(type), text: "Import Another File" })));
+}
+
+/* ---------- import history ---------- */
+async function stepHistory() {
+  if (!S) reset("payments");
+  panel.replaceChildren(head("Import History", true), h("p", { class: "imp-muted", text: "Loading ..." }));
+  try {
+    if (!auth.currentUser) throw new Error("Please sign in again.");
+    const snap = await getDocs(query(collection(db, "import_history"), where("userId", "==", auth.currentUser.uid)));
+    const items = snap.docs.map((d) => d.data()).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 25);
+    panel.replaceChildren(head("Import History", true),
+      items.length ? items.map((x) => h("div", { class: "imp-hist" },
+        h("strong", { text: x.fileName || "(file)" }),
+        h("div", { class: "imp-muted", text: new Date(x.createdAt).toLocaleString() + " - " + (TYPE_L[x.importType] || x.importType) + " - " + x.status }),
+        h("div", { text: "Detected: " + x.detected + "  Imported: " + x.imported + "  Updated: " + (x.updated || 0) + "  Skipped: " + x.skipped + "  Duplicates: " + x.duplicates })))
+        : h("p", { class: "imp-muted", text: "No imports yet." }),
+      h("div", { class: "imp-actions" }, h("button", { class: "imp-btn", type: "button", onclick: stepFile, text: "Back" })));
+  } catch (e) {
+    panel.replaceChildren(head("Import History", true), h("div", { class: "imp-err", text: "Could not load history: " + (e && e.message ? e.message : e) }),
+      h("div", { class: "imp-actions" }, h("button", { class: "imp-btn", type: "button", onclick: stepFile, text: "Back" })));
+  }
+}
+
+/* ---------- entry point: Dashboard only ---------- */
+function addBtn(viewId, type) {
+  const v = $(viewId);
+  if (!v) return;
+  v.insertBefore(h("div", { class: "imp-bar", style: "justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #dfe5f0;border-radius:10px;padding:14px 16px" },
+    h("div", { style: "flex:1;min-width:220px" }, h("strong", { text: "Smart Import" }), h("div", { class: "imp-muted", text: "Import patients, payments, expenses and clinic records from photos, camera, PDFs, Excel, CSV and documents." })),
+    h("button", { class: "imp-btn", type: "button", onclick: () => openImport(type), text: "Smart Import" })), v.firstChild);
+}
+function ensureBtn(viewId, type) {
+  const v = $(viewId);
+  if (!v) return;
+  if (!v.querySelector(":scope > .imp-bar")) addBtn(viewId, type);
+}
+function ensureAll() {
+  ensureBtn("view-dashboard", "payments");
+  document.querySelectorAll("#view-payments-real > .imp-bar, #view-patients-real > .imp-bar").forEach(function (b) { b.remove(); });
+}
+ensureAll();
+new MutationObserver(ensureAll).observe(document.body, { childList: true, subtree: true });
+</script>
 </body>
 </html>
 
