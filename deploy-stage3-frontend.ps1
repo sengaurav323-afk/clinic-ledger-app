@@ -1,0 +1,2516 @@
+$path = "index.html"
+$content = @'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clinic Ledger</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  @import url(''https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap'');
+  :root {
+    --paper: #F5F7FA;
+    --ink: #1A2332;
+    --line: #E2E6ED;
+    --muted: #6B7280;
+    --c-counselling: #2F5233;
+    --c-medicine: #5B4A8A;
+    --c-referral: #B8862E;
+    --c-other: #5A6B72;
+    --sidebar: #101B33;
+    --sidebar-hover: #1B2A4A;
+    --accent: #2E5BFF;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ''Source Sans 3'', ''Inter'', system-ui, sans-serif;
+  }
+  button, input, select { font-family: inherit; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  @keyframes stampIn { 0% { transform: scale(1.6) rotate(-2deg); opacity: 0; } 60% { transform: scale(0.95) rotate(-2deg); opacity: 1;} 100% { transform: scale(1) rotate(-2deg); opacity: 1; } }
+  .tap { transition: transform 0.08s ease; }
+  .tap:active { transform: scale(0.96); }
+  .stamp {
+    display: inline-block;
+    font-family: ''IBM Plex Mono'', monospace;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1.3px solid currentColor;
+    border-radius: 3px;
+    padding: 2px 7px;
+    transform: rotate(-2deg);
+    white-space: nowrap;
+  }
+  .stamp.small { font-size: 9px; padding: 1px 5px; }
+
+  /* ===== App shell: sidebar + main ===== */
+  #appShell { display: flex; min-height: 100vh; }
+  #sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--sidebar);
+    color: #E8E4D8;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: ''Fraunces'', serif; font-weight: 600; font-size: 17px; color: #fff; padding: 0 6px 20px; }
+  .user-card { display: flex; align-items: center; gap: 10px; background: var(--sidebar-hover); border-radius: 10px; padding: 12px; margin-bottom: 18px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .user-card-name { font-weight: 600; font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-card-role { font-size: 11px; color: #8494B0; }
+  .nav-list { list-style: none; margin: 0; padding: 0; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: #A8B3C7; font-size: 14px; cursor: pointer; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
+  .nav-item.active { background: var(--accent); color: #fff; }
+  .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex-shrink: 0; }
+  .nav-badge-new { font-size: 9px; background: #B8862E; color: #fff; padding: 1px 5px; border-radius: 999px; margin-left: auto; }
+  .signout-item { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--sidebar-hover); }
+
+  #main { flex: 1; min-width: 0; padding: 24px 28px 60px; }
+  .page-title { font-family: ''Fraunces'', serif; font-weight: 600; font-size: 26px; margin: 0 0 2px; }
+  .page-subtitle { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+
+  header.dash-header { border-bottom: 2px solid var(--ink); padding-bottom: 16px; margin-bottom: 20px; }
+  .segmented { display: flex; border: 1px solid var(--ink); border-radius: 8px; overflow: hidden; margin-bottom: 10px; width: fit-content; }
+  .segmented button { padding: 8px 22px; background: transparent; color: var(--ink); border: none; font-size: 13px; font-weight: 600; text-transform: capitalize; cursor: pointer; }
+  .segmented button.active { background: var(--accent); color: #fff; }
+  .range-nav { display: flex; align-items: center; gap: 14px; }
+  .nav-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; width: 30px; height: 30px; font-size: 15px; cursor: pointer; }
+  .range-label { font-size: 14px; font-weight: 600; font-family: ''IBM Plex Mono'', monospace; }
+
+  .error-box { background: #F6E4DF; border: 1px solid #9C3B2E; color: #7A2D22; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
+  .cards-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(16,27,51,0.06); }
+  .card-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+  .card-value { font-family: ''IBM Plex Mono'', monospace; font-size: 22px; font-weight: 600; }
+  .panel { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(16,27,51,0.06); }
+  .panel-title { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+  .bar-row { margin-bottom: 10px; }
+  .bar-row .top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px; }
+  .bar-track { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+  .combo-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+  .combo-tags { display: flex; gap: 4px; flex-wrap: wrap; flex: 1 1 auto; }
+  .combo-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .combo-total { font-family: ''IBM Plex Mono'', monospace; font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .list-count { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+  .empty-state { border: 1px dashed var(--line); border-radius: 8px; padding: 32px 16px; text-align: center; color: var(--muted); font-size: 14px; }
+  .entry-card { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #fff; margin-bottom: 8px; }
+  .entry-top { display: flex; align-items: flex-start; gap: 10px; }
+  .entry-name { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .entry-date { font-size: 11px; color: var(--muted); font-family: ''IBM Plex Mono'', monospace; margin-top: 2px; }
+  .entry-right { text-align: right; flex-shrink: 0; }
+  .entry-total { font-family: ''IBM Plex Mono'', monospace; font-weight: 600; font-size: 15px; }
+  .del-btn { background: transparent; border: none; color: var(--muted); font-size: 16px; cursor: pointer; flex-shrink: 0; padding: 4px; }
+  .mark-paid-btn { background: transparent; border: 1.3px solid #9C3B2E; color: #9C3B2E; border-radius: 3px; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; }
+  .fee-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .fee-tag { display: inline-flex; align-items: center; gap: 4px; background: #F3EEE0; border-radius: 5px; padding: 3px 7px; }
+  .fee-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .fee-tag-label { font-size: 11px; }
+  .fee-tag-amt { font-size: 11px; font-family: ''IBM Plex Mono'', monospace; color: var(--muted); }
+  .entry-notes { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .fab { position: fixed; bottom: 28px; right: 32px; background: var(--accent); color: #fff; border: none; border-radius: 999px; width: 56px; height: 56px; font-size: 26px; box-shadow: 0 6px 16px rgba(46,91,255,0.35); cursor: pointer; z-index: 10; }
+  .sheet-overlay { position: fixed; inset: 0; background: rgba(31,42,36,0.4); z-index: 20; display: none; align-items: center; justify-content: center; }
+  .sheet-overlay.open { display: flex; }
+  .sheet { background: var(--paper); width: 100%; max-width: 440px; border-radius: 14px; padding: 22px; animation: sheetUp 0.25s ease; max-height: 88vh; overflow-y: auto; }
+  .sheet-handle { display: none; }
+  .sheet h2 { font-family: ''Fraunces'', serif; font-size: 19px; font-weight: 600; margin: 0 0 16px; }
+  label.field-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .text-input { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; margin-bottom: 14px; }
+  .fee-select-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .fee-select-row { border-radius: 8px; padding: 9px 10px; display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); }
+  .fee-checkbox { width: 20px; height: 20px; flex-shrink: 0; border-radius: 5px; border: 1.5px solid var(--line); background: transparent; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .fee-name { font-size: 14px; font-weight: 600; flex: 1 1 auto; cursor: pointer; }
+  .fee-amount-input { width: 90px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; font-family: ''IBM Plex Mono'', monospace; flex-shrink: 0; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+  .submit-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 13px 0; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .export-btn { background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; color: var(--ink); cursor: pointer; }
+  .export-btn:disabled { color: var(--line); cursor: default; }
+  .setup-banner { background: #FFF6E0; border: 1px solid var(--c-referral); color: #6B4E11; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 13px; line-height: 1.5; }
+  .setup-banner code { background: #F3EEE0; padding: 1px 5px; border-radius: 4px; font-family: ''IBM Plex Mono'', monospace; font-size: 12px; }
+
+  /* ===== Auth screen ===== */
+  #authScreen { max-width: 420px; margin: 0 auto; padding: 48px 20px; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+  #authScreen .eyebrow { text-align: center; margin-bottom: 4px; font-family: ''Fraunces'', serif; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  #authScreen h1 { text-align: center; margin-bottom: 24px; font-family: ''Fraunces'', serif; font-weight: 600; font-size: 26px; }
+  .auth-toggle { text-align: center; font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .auth-toggle a { color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; }
+  .auth-msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .auth-msg.error { color: #9C3B2E; }
+  .auth-msg.ok { color: #2F5233; }
+  .pw-wrap { position: relative; }
+  .pw-wrap .text-input { padding-right: 60px; }
+  .pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); margin-top: -7px; background: none; border: none; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px; }
+
+  /* ===== Subscription / Referral / placeholder pages ===== */
+  .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .plan-card { border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: #FFFFFF; position: relative; }
+  .plan-card.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .plan-name { font-family: ''Fraunces'', serif; font-weight: 600; font-size: 17px; margin-bottom: 4px; }
+  .plan-price { font-family: ''IBM Plex Mono'', monospace; font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+  .plan-price span { font-size: 12px; font-weight: 500; color: var(--muted); }
+  .plan-features { list-style: none; padding: 0; margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+  .plan-features li { padding: 3px 0; }
+  .plan-badge { position: absolute; top: 14px; right: 14px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 8px; border-radius: 999px; }
+  .plan-badge.trial { background: #EFE7D0; color: #6B4E11; }
+  .plan-badge.active { background: #DCEBDC; color: #2F5233; }
+  .plan-btn { width: 100%; padding: 9px 0; border-radius: 7px; border: 1px solid var(--ink); background: transparent; color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer; }
+  .plan-btn.primary { background: var(--accent); color: #fff; }
+  .referral-box { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: #FFFFFF; margin-bottom: 14px; }
+  .referral-code { font-family: ''IBM Plex Mono'', monospace; font-weight: 700; font-size: 16px; flex: 1; }
+  .placeholder-panel { border: 1px dashed var(--line); border-radius: 10px; padding: 40px 20px; text-align: center; color: var(--muted); }
+
+  @media (max-width: 860px) {
+    #appShell { flex-direction: column; }
+    #sidebar { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; padding: 10px 12px; gap: 8px; }
+    .brand { padding: 0 10px 0 0; margin-bottom: 0; }
+    .user-card { display: none; }
+    .nav-list { display: flex; flex: none; gap: 4px; }
+    .nav-item span.nav-label { display: none; }
+    .signout-item { margin-top: 0; padding-top: 0; border-top: none; }
+    #main { padding: 16px; padding-bottom: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="eyebrow">Clinic Ledger</div>
+  <h1 id="authHeading">Sign in to your ledger</h1>
+
+  <div id="signInPanel">
+    <form id="emailForm">
+      <div id="signupFields" style="display:none">
+        <div style="display:flex; gap:10px">
+          <div style="flex:1">
+            <label class="field-label">First name</label>
+            <input class="text-input" id="firstNameInput" placeholder="Gaurav" />
+          </div>
+          <div style="flex:1">
+            <label class="field-label">Last name</label>
+            <input class="text-input" id="lastNameInput" placeholder="Sen" />
+          </div>
+        </div>
+        <label class="field-label">City</label>
+        <input class="text-input" id="cityInput" placeholder="Indore" />
+        <label class="field-label">Mobile number</label>
+        <input class="text-input" type="tel" id="mobileInput" placeholder="e.g. +919876543210" />
+        <label class="field-label">Referral code (optional)</label>
+        <input class="text-input" id="referredByInput" placeholder="Leave blank if none" />
+      </div>
+
+      <label class="field-label">Email</label>
+      <input class="text-input" type="email" id="emailInput" placeholder="you@example.com" required />
+
+      <label class="field-label">Password</label>
+      <div class="pw-wrap">
+        <input class="text-input" type="password" id="passwordInput" placeholder="At least 6 characters" required minlength="6" />
+        <button type="button" class="pw-toggle" data-target="passwordInput">Show</button>
+      </div>
+
+      <div id="confirmPasswordGroup" style="display:none">
+        <label class="field-label">Confirm password</label>
+        <div class="pw-wrap">
+          <input class="text-input" type="password" id="confirmPasswordInput" placeholder="Re-enter password" minlength="6" />
+          <button type="button" class="pw-toggle" data-target="confirmPasswordInput">Show</button>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn tap" id="emailSubmitBtn">Sign in</button>
+    </form>
+    <div id="forgotPasswordRow" style="text-align:center; margin-top:10px">
+      <a id="forgotPasswordLink" style="font-size:13px; color:var(--muted); text-decoration:underline; cursor:pointer">Forgot password?</a>
+    </div>
+    <div class="auth-toggle" id="emailToggle">Don''t have an account? <a>Create one</a></div>
+    <div class="auth-msg" id="emailMsg"></div>
+  </div>
+
+  <div id="resetPanel" style="display:none">
+    <p style="font-size:14px; color:var(--muted); text-align:center; margin-top:-10px">Enter your registered email address and we''ll send you a link to reset your password.</p>
+    <form id="resetForm">
+      <label class="field-label">Email</label>
+      <input class="text-input" type="email" id="resetEmailInput" placeholder="you@example.com" required />
+      <button type="submit" class="submit-btn tap">Send reset link</button>
+    </form>
+    <div class="auth-toggle" id="backToSignInLink"><a>← Back to sign in</a></div>
+    <div class="auth-msg" id="resetMsg"></div>
+  </div>
+</div>
+
+<div id="appShell" style="display:none">
+  <div id="sidebar">
+    <div class="brand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg> Clinic Ledger</div>
+    <div class="user-card">
+      <div class="avatar" id="avatarInitials">?</div>
+      <div style="min-width:0">
+        <div class="user-card-name" id="userFullName">—</div>
+        <div class="user-card-role">Clinic Admin</div>
+      </div>
+    </div>
+    <ul class="nav-list">
+      <li class="nav-item active" data-view="dashboard"><span class="dot"></span><span class="nav-label">Dashboard</span></li>
+      <li class="nav-item" data-view="placeholder-payments"><span class="dot"></span><span class="nav-label">Payments</span></li>
+      <li class="nav-item" data-view="placeholder-patients"><span class="dot"></span><span class="nav-label">Patients</span></li>
+      <li class="nav-item" data-view="placeholder-reports"><span class="dot"></span><span class="nav-label">Reports</span></li>
+      <li class="nav-item" data-view="placeholder-expenses"><span class="dot"></span><span class="nav-label">Expenses</span></li>
+      <li class="nav-item" data-view="placeholder-categories"><span class="dot"></span><span class="nav-label">Categories</span></li>
+      <li class="nav-item" data-view="placeholder-settings"><span class="dot"></span><span class="nav-label">Settings</span></li>
+      <li class="nav-item" data-view="subscription"><span class="dot"></span><span class="nav-label">Subscription</span></li>
+      <li class="nav-item" data-view="refer"><span class="dot"></span><span class="nav-label">Refer &amp; Earn</span><span class="nav-badge-new">New</span></li>
+    </ul>
+    <div class="signout-item">
+      <li class="nav-item" id="logoutBtn" style="list-style:none"><span class="dot"></span><span class="nav-label">Sign out</span></li>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="setupBanner"></div>
+    <div id="errorBox"></div>
+
+    <!-- DASHBOARD VIEW -->
+    <div id="view-dashboard">
+      <header class="dash-header">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Overview of your clinic payments</p>
+          </div>
+          <button class="export-btn tap" id="exportBtn" title="Export all entries as CSV">Export CSV</button>
+        </div>
+        <div class="segmented" id="periodSeg">
+          <button data-period="day" class="active">Day</button>
+          <button data-period="week">Week</button>
+          <button data-period="month">Month</button>
+        </div>
+        <div class="range-nav">
+          <button class="nav-btn tap" id="prevBtn" aria-label="Previous period">‹</button>
+          <div class="range-label" id="rangeLabel">Today</div>
+          <button class="nav-btn tap" id="nextBtn" aria-label="Next period">›</button>
+        </div>
+      </header>
+
+      <div class="cards-row">
+        <div class="card">
+          <div class="card-label">Received</div>
+          <div class="card-value" id="receivedVal" style="color:#2F5233">₹0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Pending</div>
+          <div class="card-value" id="pendingVal">₹0</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Transactions</div>
+          <div class="card-value" id="txnCountVal">0</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">By fee type (received)</div>
+        <div id="typeBars"></div>
+      </div>
+
+      <div class="panel" id="comboPanel" style="display:none">
+        <div class="panel-title">Who paid for what</div>
+        <div id="comboList"></div>
+      </div>
+
+      <div class="list-count" id="listCount">0 entries</div>
+      <div id="entryList"></div>
+    </div>
+
+    <!-- SUBSCRIPTION VIEW -->
+    <div id="view-subscription" style="display:none">
+      <h1 class="page-title">Subscription</h1>
+      <p class="page-subtitle">Your plan and billing status</p>
+      <div class="panel" id="subStatusPanel"></div>
+      <div class="plan-grid" id="planGrid"></div>
+      <p style="font-size:12px; color:var(--muted)">Note: online payment isn''t connected yet — "Subscribe" is a placeholder until a payment gateway is set up.</p>
+    </div>
+
+    <!-- REFERRAL VIEW -->
+    <div id="view-refer" style="display:none">
+      <h1 class="page-title">Refer &amp; Earn</h1>
+      <p class="page-subtitle">Share your code — reward crediting isn''t automated yet (see note below)</p>
+      <div class="referral-box">
+        <div class="referral-code" id="referralCodeVal">—</div>
+        <button class="export-btn tap" id="copyReferralBtn">Copy link</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted); max-width:480px">Referral codes are generated and can be shared, and new signups can enter one. Automatically crediting free days for successful referrals isn''t implemented yet — that needs secure server-side logic (Cloud Functions) to prevent abuse, which this project isn''t set up for yet.</p>
+    </div>
+
+    <!-- PLACEHOLDER VIEWS -->
+    <div id="view-placeholder" style="display:none">
+      <h1 class="page-title" id="placeholderTitle">Coming soon</h1>
+      <p class="page-subtitle">This section isn''t built yet</p>
+      <div class="placeholder-panel">This page will be built in a future update.</div>
+    </div>
+  </div>
+
+  <button class="fab tap" id="addBtn" aria-label="Add payment">+</button>
+
+  <div class="sheet-overlay" id="sheetOverlay">
+    <form class="sheet" id="entryForm">
+      <h2>New payment</h2>
+
+      <label class="field-label">Patient name</label>
+      <input class="text-input" id="patientInput" placeholder="e.g. Priya Sharma" required />
+
+      <label class="field-label">Fee types — select all that apply</label>
+      <div class="fee-select-list" id="feeSelectList"></div>
+
+      <label class="field-label">Date</label>
+      <input class="text-input" type="date" id="dateInput" required />
+
+      <label class="field-label">Notes (optional)</label>
+      <input class="text-input" id="notesInput" placeholder="e.g. referred to Dr. Iyer" />
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="paidNowInput" checked style="width:18px;height:18px" />
+        <label for="paidNowInput" style="font-size:14px">Paid at time of visit</label>
+      </div>
+
+      <button type="submit" class="submit-btn tap">Save payment</button>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signOut,
+    createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjzfzvCXPCifxeG01QRJH6jT3Yh0VxFJk",
+    authDomain: "curevona.firebaseapp.com",
+    projectId: "curevona",
+    storageBucket: "curevona.firebasestorage.app",
+    messagingSenderId: "56185108381",
+    appId: "1:56185108381:web:5563db3ef9573035762174",
+  };
+
+  const WORKER_URL = "https://clinic-ledger-worker.sengaurav323-clinic.workers.dev";
+
+  const FEE_TYPES = [
+    { key: "counselling", label: "Counselling", color: "#2F5233" },
+    { key: "medicine", label: "Medicine", color: "#5B4A8A" },
+    { key: "referral", label: "Referral", color: "#B8862E" },
+    { key: "other", label: "Other", color: "#5A6B72" },
+  ];
+  const FEE_ORDER = FEE_TYPES.map((f) => f.key);
+  const feeMeta = (key) => FEE_TYPES.find((f) => f.key === key) || FEE_TYPES[3];
+
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+  const fmtMoney = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
+  const fmtDateShort = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  const fmtDateLong = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+  function weekRange(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const day = (d.getDay() + 6) % 7;
+    const start = new Date(d); start.setDate(d.getDate() - day);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
+  function monthRange(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
+  const inRange = (dateStr, start, end) => dateStr >= start && dateStr <= end;
+  const comboKey = (keys) => FEE_ORDER.filter((k) => keys.includes(k)).join("+");
+  const comboLabel = (keys) => FEE_ORDER.filter((k) => keys.includes(k)).map((k) => feeMeta(k).label).join(" + ");
+  const entryFeeKeys = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
+  const entryTotal = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+
+  function addMonths(date, n) {
+    const d = new Date(date.getTime());
+    d.setMonth(d.getMonth() + n);
+    return d;
+  }
+  function addYears(date, n) {
+    const d = new Date(date.getTime());
+    d.setFullYear(d.getFullYear() + n);
+    return d;
+  }
+  function addDays(date, n) {
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + n);
+    return d;
+  }
+
+  let entries = [];
+  let period = "day";
+  let anchorDate = todayISO();
+  let selectedFees = new Set(["counselling"]);
+  let feeAmounts = { counselling: "", medicine: "", referral: "", other: "" };
+  let db = null;
+  let colRef = null;
+  let userProfile = null;
+  let isRegistering = false;
+
+  const setupBanner = document.getElementById("setupBanner");
+  const errorBox = document.getElementById("errorBox");
+  const authScreen = document.getElementById("authScreen");
+  const appShell = document.getElementById("appShell");
+  const configured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+  let auth = null;
+  let currentUnsub = null;
+
+  function generateReferralCode(firstName) {
+    const base = (firstName || "USER").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 8) || "USER";
+    const num = Math.floor(1000 + Math.random() * 9000);
+    return base + num;
+  }
+
+  function initials(first, last) {
+    const a = (first || "").trim()[0] || "";
+    const b = (last || "").trim()[0] || "";
+    return (a + b).toUpperCase() || "?";
+  }
+
+  if (!configured) {
+    authScreen.style.display = "none";
+    appShell.style.display = "flex";
+    setupBanner.innerHTML = `<div class="setup-banner">
+      <strong>Setup needed:</strong> this file needs a free Firebase project connected before it can save data.
+    </div>`;
+  } else {
+    const fbApp = initializeApp(firebaseConfig);
+    auth = getAuth(fbApp);
+    db = getFirestore(fbApp);
+    colRef = collection(db, "clinic_entries");
+
+    onAuthStateChanged(auth, async (user) => {
+      if (isRegistering) return;
+      if (currentUnsub) { currentUnsub(); currentUnsub = null; }
+      if (user) {
+        authScreen.style.display = "none";
+        appShell.style.display = "flex";
+
+        try {
+          const profSnap = await getDoc(doc(db, "users", user.uid));
+          userProfile = profSnap.exists() ? profSnap.data() : {};
+          if (!userProfile.referralCode) {
+            const code = generateReferralCode(userProfile.firstName);
+            await setDoc(doc(db, "users", user.uid), { referralCode: code }, { merge: true });
+            userProfile.referralCode = code;
+          }
+        } catch (e) {
+          userProfile = {};
+        }
+
+        const fullName = [userProfile.firstName, userProfile.lastName].filter(Boolean).join(" ") || user.email;
+        document.getElementById("userFullName").textContent = fullName;
+        document.getElementById("avatarInitials").textContent = initials(userProfile.firstName, userProfile.lastName);
+
+        const q = query(colRef, where("userId", "==", user.uid));
+        currentUnsub = onSnapshot(q, (snap) => {
+          entries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          render();
+          renderSubscription();
+        }, (err) => {
+          const code = err && err.code ? err.code : "";
+          if (code === "permission-denied") {
+            showError("Permission denied — check Firestore security rules.");
+          } else if (code === "unavailable") {
+            showError("Could not reach the database — check your connection.");
+          } else {
+            showError("Could not load data (" + (code || "unknown error") + "). Try refreshing.");
+          }
+        });
+        renderSubscription();
+        renderReferral();
+      } else {
+        appShell.style.display = "none";
+        authScreen.style.display = "flex";
+        entries = [];
+        userProfile = null;
+      }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
+  }
+
+  function showError(msg) {
+    errorBox.innerHTML = `<div class="error-box">${msg}</div>`;
+  }
+  function clearError() {
+    errorBox.innerHTML = "";
+  }
+
+  async function addEntryToDb(entry) {
+    if (!colRef || !auth.currentUser) { showError("Not connected — complete the Firebase setup first."); return; }
+    try {
+      await addDoc(colRef, { ...entry, userId: auth.currentUser.uid });
+      clearError();
+    } catch (e) {
+      showError("Could not save — changes may not persist.");
+    }
+  }
+  async function markPaidInDb(id) {
+    try {
+      await updateDoc(doc(db, "clinic_entries", id), { status: "paid", paidAt: todayISO() });
+      clearError();
+    } catch (e) {
+      showError("Could not save — changes may not persist.");
+    }
+  }
+  async function deleteEntryFromDb(id) {
+    try {
+      await deleteDoc(doc(db, "clinic_entries", id));
+      clearError();
+    } catch (e) {
+      showError("Could not delete — try again.");
+    }
+  }
+
+  // ---- Sidebar navigation ----
+  const views = ["dashboard", "subscription", "refer", "placeholder"];
+  function showView(view, label) {
+    views.forEach((v) => {
+      const el = document.getElementById("view-" + v);
+      if (el) el.style.display = "none";
+    });
+    if (view.startsWith("placeholder")) {
+      document.getElementById("view-placeholder").style.display = "block";
+      document.getElementById("placeholderTitle").textContent = label || "Coming soon";
+    } else {
+      const el = document.getElementById("view-" + view);
+      if (el) el.style.display = "block";
+    }
+  }
+  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+    item.addEventListener("click", () => {
+      document.querySelectorAll(".nav-item[data-view]").forEach((i) => i.classList.remove("active"));
+      item.classList.add("active");
+      const view = item.dataset.view;
+      const label = item.querySelector(".nav-label") ? item.querySelector(".nav-label").textContent : "";
+      showView(view, label);
+    });
+  });
+
+  // ---- Period controls ----
+  document.querySelectorAll("#periodSeg button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      period = btn.dataset.period;
+      document.querySelectorAll("#periodSeg button").forEach((b) => b.classList.toggle("active", b === btn));
+      render();
+    });
+  });
+  document.getElementById("prevBtn").addEventListener("click", () => shiftPeriod(-1));
+  document.getElementById("nextBtn").addEventListener("click", () => shiftPeriod(1));
+  function shiftPeriod(dir) {
+    const d = new Date(anchorDate + "T00:00:00");
+    if (period === "day") d.setDate(d.getDate() + dir);
+    else if (period === "week") d.setDate(d.getDate() + dir * 7);
+    else d.setMonth(d.getMonth() + dir);
+    anchorDate = d.toISOString().slice(0, 10);
+    render();
+  }
+
+  function currentRange() {
+    if (period === "day") return { start: anchorDate, end: anchorDate };
+    if (period === "week") return weekRange(anchorDate);
+    return monthRange(anchorDate);
+  }
+  function rangeLabelText(range) {
+    if (period === "day") return anchorDate === todayISO() ? "Today" : fmtDateShort(anchorDate);
+    if (period === "week") return `${fmtDateShort(range.start)} – ${fmtDateShort(range.end)}`;
+    const d = new Date(anchorDate + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  }
+
+  const addBtn = document.getElementById("addBtn");
+  const sheetOverlay = document.getElementById("sheetOverlay");
+  const entryForm = document.getElementById("entryForm");
+  const feeSelectList = document.getElementById("feeSelectList");
+
+  addBtn.addEventListener("click", () => { sheetOverlay.classList.add("open"); });
+  sheetOverlay.addEventListener("click", (e) => { if (e.target === sheetOverlay) sheetOverlay.classList.remove("open"); });
+  entryForm.addEventListener("click", (e) => e.stopPropagation());
+
+  document.getElementById("dateInput").value = todayISO();
+
+  function renderFeeSelectList() {
+    feeSelectList.innerHTML = "";
+    FEE_TYPES.forEach((f) => {
+      const isSel = selectedFees.has(f.key);
+      const row = document.createElement("div");
+      row.className = "fee-select-row";
+      row.style.borderColor = isSel ? f.color : "var(--line)";
+      row.style.background = isSel ? f.color + "14" : "transparent";
+      row.innerHTML = `
+        <button type="button" class="fee-checkbox tap" style="border-color:${isSel ? f.color : ''var(--line)''};background:${isSel ? f.color : ''transparent''}">${isSel ? "✓" : ""}</button>
+        <span class="fee-name">${f.label}</span>
+        ${isSel ? `<input type="number" min="0" step="0.01" inputmode="decimal" class="fee-amount-input" placeholder="Amount" data-key="${f.key}" value="${feeAmounts[f.key]}" required />` : ""}
+      `;
+      row.querySelector(".fee-checkbox").addEventListener("click", () => toggleFee(f.key));
+      row.querySelector(".fee-name").addEventListener("click", () => toggleFee(f.key));
+      const amtInput = row.querySelector(".fee-amount-input");
+      if (amtInput) amtInput.addEventListener("input", (e) => { feeAmounts[f.key] = e.target.value; });
+      feeSelectList.appendChild(row);
+    });
+  }
+  function toggleFee(key) {
+    if (selectedFees.has(key)) selectedFees.delete(key);
+    else selectedFees.add(key);
+    renderFeeSelectList();
+  }
+  renderFeeSelectList();
+
+  entryForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const patient = document.getElementById("patientInput").value.trim();
+    if (!patient || selectedFees.size === 0) return;
+    const fees = {};
+    selectedFees.forEach((key) => {
+      const val = parseFloat(feeAmounts[key]);
+      if (val > 0) fees[key] = val;
+    });
+    if (Object.keys(fees).length === 0) return;
+
+    const paidNow = document.getElementById("paidNowInput").checked;
+    const newEntry = {
+      patient,
+      date: document.getElementById("dateInput").value,
+      notes: document.getElementById("notesInput").value.trim(),
+      status: paidNow ? "paid" : "pending",
+      paidAt: paidNow ? todayISO() : null,
+      fees,
+    };
+    await addEntryToDb(newEntry);
+
+    document.getElementById("patientInput").value = "";
+    document.getElementById("notesInput").value = "";
+    document.getElementById("dateInput").value = todayISO();
+    document.getElementById("paidNowInput").checked = true;
+    selectedFees = new Set(["counselling"]);
+    feeAmounts = { counselling: "", medicine: "", referral: "", other: "" };
+    renderFeeSelectList();
+    sheetOverlay.classList.remove("open");
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    if (entries.length === 0) return;
+    const header = ["Date", "Patient", "Counselling", "Medicine", "Referral", "Other", "Total", "Status", "Paid At", "Notes"];
+    const rows = [...entries].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map((e) => {
+      const f = e.fees || {};
+      const esc = (v) => `"${String(v ?? "").replace(/"/g, ''""'')}"`;
+      return [e.date, esc(e.patient), f.counselling || "", f.medicine || "", f.referral || "", f.other || "", entryTotal(e), e.status, e.paidAt || "", esc(e.notes || "")].join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `clinic-payments-${todayISO()}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+  document.getElementById("exportBtn").disabled = true;
+
+  function render() {
+    document.getElementById("exportBtn").disabled = entries.length === 0;
+    const range = currentRange();
+    document.getElementById("rangeLabel").textContent = rangeLabelText(range);
+
+    const periodEntries = entries.filter((e) => inRange(e.date, range.start, range.end))
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+    let received = 0, pending = 0;
+    const byType = { counselling: 0, medicine: 0, referral: 0, other: 0 };
+    const combos = {};
+    for (const e of periodEntries) {
+      const total = entryTotal(e);
+      if (e.status === "paid") {
+        received += total;
+        for (const [k, v] of Object.entries(e.fees || {})) byType[k] = (byType[k] || 0) + v;
+        const keys = entryFeeKeys(e);
+        const ck = comboKey(keys);
+        if (!combos[ck]) combos[ck] = { label: comboLabel(keys), count: 0, total: 0, keys };
+        combos[ck].count += 1;
+        combos[ck].total += total;
+      } else {
+        pending += total;
+      }
+    }
+    const comboList = Object.values(combos).sort((a, b) => b.total - a.total);
+    const maxTypeVal = Math.max(1, ...Object.values(byType));
+
+    document.getElementById("receivedVal").textContent = fmtMoney(received);
+    const pendingEl = document.getElementById("pendingVal");
+    pendingEl.textContent = fmtMoney(pending);
+    pendingEl.style.color = pending ? "#B8862E" : "var(--ink)";
+    document.getElementById("txnCountVal").textContent = periodEntries.length;
+
+    const typeBars = document.getElementById("typeBars");
+    typeBars.innerHTML = FEE_TYPES.map((f) => `
+      <div class="bar-row">
+        <div class="top"><span>${f.label}</span><span style="font-family:''IBM Plex Mono'',monospace;font-weight:600">${fmtMoney(byType[f.key])}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(byType[f.key] / maxTypeVal) * 100}%;background:${f.color}"></div></div>
+      </div>
+    `).join("");
+
+    const comboPanel = document.getElementById("comboPanel");
+    const comboListEl = document.getElementById("comboList");
+    if (comboList.length > 0) {
+      comboPanel.style.display = "block";
+      comboListEl.innerHTML = comboList.map((c) => `
+        <div class="combo-row">
+          <div class="combo-tags">${c.keys.map((k) => `<span class="stamp small" style="color:${feeMeta(k).color}">${feeMeta(k).label}</span>`).join("")}</div>
+          <div class="combo-count">${c.count} ${c.count === 1 ? "patient" : "patients"}</div>
+          <div class="combo-total">${fmtMoney(c.total)}</div>
+        </div>
+      `).join("");
+    } else {
+      comboPanel.style.display = "none";
+    }
+
+    document.getElementById("listCount").textContent = `${periodEntries.length} ${periodEntries.length === 1 ? "entry" : "entries"}`;
+    const listEl = document.getElementById("entryList");
+    if (periodEntries.length === 0) {
+      listEl.innerHTML = `<div class="empty-state">No payments logged for this ${period}.</div>`;
+    } else {
+      listEl.innerHTML = periodEntries.map((e) => {
+        const keys = entryFeeKeys(e);
+        const total = entryTotal(e);
+        return `
+          <div class="entry-card">
+            <div class="entry-top">
+              <div style="flex:1 1 auto;min-width:0">
+                <div class="entry-name">${escapeHtml(e.patient)}</div>
+                <div class="entry-date">${fmtDateShort(e.date)}</div>
+              </div>
+              <div class="entry-right">
+                <div class="entry-total">${fmtMoney(total)}</div>
+                <div style="margin-top:4px">
+                  ${e.status === "paid"
+                    ? `<span class="stamp small" style="color:#2F5233">Paid</span>`
+                    : `<button class="mark-paid-btn tap" data-id="${e.id}" data-action="markpaid">Mark paid</button>`}
+                </div>
+              </div>
+              <button class="del-btn tap" data-id="${e.id}" data-action="delete" aria-label="Delete">✕</button>
+            </div>
+            <div class="fee-tags">
+              ${keys.map((k) => `<span class="fee-tag"><span class="fee-dot" style="background:${feeMeta(k).color}"></span><span class="fee-tag-label">${feeMeta(k).label}</span><span class="fee-tag-amt">${fmtMoney(e.fees[k])}</span></span>`).join("")}
+            </div>
+            ${e.notes ? `<div class="entry-notes">${escapeHtml(e.notes)}</div>` : ""}
+          </div>
+        `;
+      }).join("");
+
+      listEl.querySelectorAll("[data-action=''markpaid'']").forEach((btn) => {
+        btn.addEventListener("click", () => markPaidInDb(btn.dataset.id));
+      });
+      listEl.querySelectorAll("[data-action=''delete'']").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (confirm("Delete this entry? This can''t be undone.")) deleteEntryFromDb(btn.dataset.id);
+        });
+      });
+    }
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement("div");
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // ---- Subscription page ----
+  function renderSubscription() {
+    if (!userProfile) return;
+    const panel = document.getElementById("subStatusPanel");
+    const grid = document.getElementById("planGrid");
+    if (!panel || !grid) return;
+
+    const createdAt = userProfile.createdAt ? new Date(userProfile.createdAt) : new Date();
+    const trialEnd = addDays(createdAt, 15);
+    const now = new Date();
+
+    const paidPlan = userProfile.subscriptionPlan; // "monthly" | "yearly" | undefined
+    const paidStart = userProfile.subscriptionStart ? new Date(userProfile.subscriptionStart) : null;
+    let paidEnd = null;
+    if (paidStart && paidPlan === "monthly") paidEnd = addMonths(paidStart, 1);
+    if (paidStart && paidPlan === "yearly") paidEnd = addYears(paidStart, 1);
+
+    let statusLabel, statusClass, statusDetail;
+    if (paidEnd && paidEnd > now) {
+      statusLabel = "Active";
+      statusClass = "active";
+      statusDetail = `${paidPlan === "yearly" ? "Yearly" : "Monthly"} plan — renews ${fmtDateLong(paidEnd)}`;
+    } else if (trialEnd > now) {
+      statusLabel = "Free Trial";
+      statusClass = "trial";
+      statusDetail = `Trial active — valid till ${fmtDateLong(trialEnd)}`;
+    } else {
+      statusLabel = "Expired";
+      statusClass = "";
+      statusDetail = "Your subscription has expired. Choose a plan to continue using the platform.";
+    }
+
+    panel.innerHTML = `
+      <div class="panel-title">Current status</div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px">
+        <span class="plan-badge ${statusClass}" style="position:static">${statusLabel}</span>
+      </div>
+      <div style="font-size:14px; color:var(--muted)">${statusDetail}</div>
+      <div style="margin-top:12px; font-size:13px; color:var(--muted); display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px">
+        <div>Trial start<br><b style="color:var(--ink)">${fmtDateLong(createdAt)}</b></div>
+        <div>Trial end<br><b style="color:var(--ink)">${fmtDateLong(trialEnd)}</b></div>
+        ${paidStart ? `<div>Subscription start<br><b style="color:var(--ink)">${fmtDateLong(paidStart)}</b></div>` : ""}
+        ${paidEnd ? `<div>Next renewal<br><b style="color:var(--ink)">${fmtDateLong(paidEnd)}</b></div>` : ""}
+      </div>
+    `;
+
+    const isTrialCurrent = statusLabel === "Free Trial";
+    const isMonthlyCurrent = statusLabel === "Active" && paidPlan === "monthly";
+    const isYearlyCurrent = statusLabel === "Active" && paidPlan === "yearly";
+
+    grid.innerHTML = `
+      <div class="plan-card ${isTrialCurrent ? "current" : ""}">
+        ${isTrialCurrent ? `<span class="plan-badge trial">Current</span>` : ""}
+        <div class="plan-name">Free Trial</div>
+        <div class="plan-price">₹0</div>
+        <ul class="plan-features"><li>First month free</li><li>Full access during trial</li></ul>
+        <button class="plan-btn" disabled style="opacity:0.5">Automatic on sign-up</button>
+      </div>
+      <div class="plan-card ${isMonthlyCurrent ? "current" : ""}">
+        ${isMonthlyCurrent ? `<span class="plan-badge active">Current</span>` : ""}
+        <div class="plan-name">Monthly</div>
+        <div class="plan-price">₹99 <span>/ month</span></div>
+        <ul class="plan-features"><li>Full platform access</li><li>Monthly renewal</li></ul>
+        <button class="plan-btn primary tap" data-plan="monthly">Subscribe Monthly</button>
+      </div>
+      <div class="plan-card ${isYearlyCurrent ? "current" : ""}">
+        ${isYearlyCurrent ? `<span class="plan-badge active">Current</span>` : ""}
+        <div class="plan-name">Yearly</div>
+        <div class="plan-price">₹999 <span>/ year</span></div>
+        <ul class="plan-features"><li>Full platform access</li><li>Annual renewal</li><li>Save vs monthly</li></ul>
+        <button class="plan-btn primary tap" data-plan="yearly">Subscribe Yearly</button>
+      </div>
+    `;
+
+    grid.querySelectorAll("[data-plan]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!auth.currentUser) return;
+        const plan = btn.dataset.plan;
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Preparing payment...";
+
+        try {
+          const idToken = await auth.currentUser.getIdToken();
+          const orderRes = await fetch(WORKER_URL + "/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+            body: JSON.stringify({ plan: plan }),
+          });
+
+          if (!orderRes.ok) {
+            const errBody = await orderRes.json().catch(() => ({}));
+            alert(errBody.error || "Could not start payment — please try again.");
+            btn.disabled = false;
+            btn.textContent = originalText;
+            return;
+          }
+
+          const order = await orderRes.json();
+
+          const rzp = new Razorpay({
+            key: order.keyId,
+            amount: order.amount,
+            currency: order.currency,
+            name: "Clinic Ledger",
+            description: order.planLabel + " Subscription",
+            order_id: order.orderId,
+            prefill: { email: auth.currentUser.email || "" },
+            theme: { color: "#2E5BFF" },
+            handler: function () {
+              btn.textContent = "Confirming payment...";
+              waitForSubscriptionUpdate(plan, btn, originalText);
+            },
+            modal: {
+              ondismiss: function () {
+                btn.disabled = false;
+                btn.textContent = originalText;
+              },
+            },
+          });
+
+          rzp.on("payment.failed", function () {
+            alert("Payment failed — please try again.");
+            btn.disabled = false;
+            btn.textContent = originalText;
+          });
+
+          rzp.open();
+        } catch (err) {
+          alert("Could not start payment — please check your connection and try again.");
+          btn.disabled = false;
+          btn.textContent = originalText;
+        }
+      });
+    });
+  }
+
+  async function waitForSubscriptionUpdate(expectedPlan, btn, originalText) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        if (snap.exists() && snap.data().subscriptionPlan === expectedPlan) {
+          userProfile = snap.data();
+          renderSubscription();
+          return;
+        }
+      } catch (e) {
+        // ignore and retry
+      }
+    }
+    btn.disabled = false;
+    btn.textContent = originalText;
+    alert("Payment received — it may take a minute to reflect here. If it doesn''t update shortly, refresh the page.");
+  }
+
+  // ---- Referral page ----
+  function renderReferral() {
+    if (!userProfile) return;
+    const el = document.getElementById("referralCodeVal");
+    if (el) el.textContent = userProfile.referralCode || "—";
+  }
+  document.getElementById("copyReferralBtn").addEventListener("click", () => {
+    const code = userProfile && userProfile.referralCode ? userProfile.referralCode : "";
+    const link = window.location.origin + "/?ref=" + code;
+    navigator.clipboard.writeText(link).then(() => {
+      const btn = document.getElementById("copyReferralBtn");
+      const old = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    });
+  });
+
+  // ---- Auth screen wiring ----
+  function authErrorMessage(err) {
+    const code = err && err.code ? err.code : "";
+    if (code.includes("email-already-in-use")) return "An account with this email already exists — try signing in instead.";
+    if (code.includes("invalid-email")) return "That email address looks invalid.";
+    if (code.includes("weak-password")) return "Password should be at least 6 characters.";
+    if (code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) return "Incorrect email or password.";
+    if (code.includes("too-many-requests")) return "Too many attempts — please wait a bit and try again.";
+    return "Something went wrong. Please try again.";
+  }
+  function setAuthMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = "auth-msg" + (type ? " " + type : "");
+  }
+
+  let isSignupMode = false;
+  function updateEmailToggleUI() {
+    document.getElementById("authHeading").textContent = isSignupMode ? "Create your account" : "Sign in to your ledger";
+    document.getElementById("emailSubmitBtn").textContent = isSignupMode ? "Create account" : "Sign in";
+    document.getElementById("emailToggle").innerHTML = isSignupMode
+      ? ''Already have an account? <a>Sign in</a>''
+      : "Don''t have an account? <a>Create one</a>";
+    document.getElementById("signupFields").style.display = isSignupMode ? "block" : "none";
+    document.getElementById("confirmPasswordGroup").style.display = isSignupMode ? "block" : "none";
+    document.getElementById("forgotPasswordRow").style.display = isSignupMode ? "none" : "block";
+  }
+  document.getElementById("emailToggle").addEventListener("click", (e) => {
+    if (e.target.tagName === "A") {
+      e.preventDefault();
+      isSignupMode = !isSignupMode;
+      updateEmailToggleUI();
+      setAuthMsg("emailMsg", "", "");
+    }
+  });
+
+  document.getElementById("emailForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!auth) return;
+    const email = document.getElementById("emailInput").value.trim();
+    const password = document.getElementById("passwordInput").value;
+    setAuthMsg("emailMsg", "", "");
+
+    if (isSignupMode) {
+      const confirmPassword = document.getElementById("confirmPasswordInput").value;
+      const firstName = document.getElementById("firstNameInput").value.trim();
+      const lastName = document.getElementById("lastNameInput").value.trim();
+      const city = document.getElementById("cityInput").value.trim();
+      const mobile = document.getElementById("mobileInput").value.trim();
+      const referredBy = document.getElementById("referredByInput").value.trim();
+
+      if (!firstName) { setAuthMsg("emailMsg", "First name is required.", "error"); return; }
+      if (!lastName) { setAuthMsg("emailMsg", "Last name is required.", "error"); return; }
+      if (!city) { setAuthMsg("emailMsg", "City is required.", "error"); return; }
+      if (!/^\+?[0-9]{7,15}$/.test(mobile)) { setAuthMsg("emailMsg", "Enter a valid mobile number.", "error"); return; }
+      if (password.length < 6) { setAuthMsg("emailMsg", "Password should be at least 6 characters.", "error"); return; }
+      if (password !== confirmPassword) { setAuthMsg("emailMsg", "Passwords don''t match.", "error"); return; }
+
+      let resolvedReferrerUid = null;
+      if (referredBy) {
+        try {
+          const lookupRes = await fetch(WORKER_URL + "/resolve-referral-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: referredBy }),
+          });
+          const lookup = await lookupRes.json();
+          if (!lookupRes.ok || !lookup.found) {
+            setAuthMsg("emailMsg", "That referral code wasn''t found. Check it, or leave it blank.", "error");
+            return;
+          }
+          resolvedReferrerUid = lookup.uid;
+        } catch (err) {
+          setAuthMsg("emailMsg", "Couldn''t verify that referral code — please try again.", "error");
+          return;
+        }
+      }
+
+      try {
+        isRegistering = true;
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const code = generateReferralCode(firstName);
+        await setDoc(doc(db, "users", cred.user.uid), {
+          firstName, lastName, city, mobile, email,
+          createdAt: new Date().toISOString(),
+          referralCode: code,
+          referredBy: resolvedReferrerUid,
+        });
+        await signOut(auth);
+        isRegistering = false;
+
+        document.getElementById("emailForm").reset();
+        isSignupMode = false;
+        updateEmailToggleUI();
+        setAuthMsg("emailMsg", "Account created successfully. Please sign in to continue.", "ok");
+        document.getElementById("emailInput").value = email;
+      } catch (err) {
+        isRegistering = false;
+        setAuthMsg("emailMsg", authErrorMessage(err), "error");
+      }
+    } else {
+      const btn = document.getElementById("emailSubmitBtn");
+      btn.disabled = true;
+      btn.textContent = "Signing in...";
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        console.log("[Clinic Ledger] Sign-in successful for:", email);
+      } catch (err) {
+        console.error("[Clinic Ledger] Sign-in FAILED:", err.code, err.message);
+        setAuthMsg("emailMsg", authErrorMessage(err), "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign in";
+      }
+    }
+  });
+
+  document.querySelectorAll(".pw-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.target);
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      btn.textContent = showing ? "Show" : "Hide";
+    });
+  });
+
+  // ---- Forgot password ----
+  document.getElementById("forgotPasswordLink").addEventListener("click", () => {
+    document.getElementById("signInPanel").style.display = "none";
+    document.getElementById("resetPanel").style.display = "block";
+    document.getElementById("authHeading").textContent = "Forgot password?";
+  });
+  document.getElementById("backToSignInLink").addEventListener("click", () => {
+    document.getElementById("resetPanel").style.display = "none";
+    document.getElementById("signInPanel").style.display = "block";
+    document.getElementById("authHeading").textContent = "Sign in to your ledger";
+    setAuthMsg("resetMsg", "", "");
+  });
+  document.getElementById("resetForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!auth) return;
+    const email = document.getElementById("resetEmailInput").value.trim();
+    try {
+      await sendPasswordResetEmail(auth, email, { url: window.location.origin + "/reset-password.html" });
+      console.log("[Clinic Ledger] Password reset request submitted successfully to Firebase for:", email);
+    } catch (err) {
+      console.error("[Clinic Ledger] Password reset request FAILED:", err.code, err.message);
+    }
+    setAuthMsg("resetMsg", "If the email is registered, you''ll receive a password reset link shortly.", "ok");
+  });
+
+  render();
+</script>
+</body>
+</html>
+
+
+
+
+<style>.text-input::placeholder { color: #B7AF9C !important; font-style: italic; opacity: 1; }</style>
+
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider, updatePassword, deleteUser } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const extApp = getApp();
+  const extAuth = getAuth(extApp);
+  const extDb = getFirestore(extApp);
+  const extClinicCol = collection(extDb, "clinic_entries");
+  const extPatientsCol = collection(extDb, "patients");
+  const extExpensesCol = collection(extDb, "expenses");
+
+  const FEE_TYPES2 = [
+    { key: "counselling", label: "Counselling", color: "#2F5233" },
+    { key: "medicine", label: "Medicine", color: "#5B4A8A" },
+    { key: "referral", label: "Referral", color: "#B8862E" },
+    { key: "other", label: "Other", color: "#5A6B72" },
+  ];
+  const feeMeta2 = (k) => FEE_TYPES2.find((f) => f.key === k) || FEE_TYPES2[3];
+  const fmtMoney2 = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
+  const todayISO2 = () => new Date().toISOString().slice(0, 10);
+  const entryTotal2 = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+  const entryFeeKeys2 = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
+  const fmtDateLong2 = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const fmtDateShort2 = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  const escapeHtml2 = (s) => { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; };
+  function addMonths2(date, n) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + n); return d; }
+  function addDays2(date, n) { const d = new Date(date.getTime()); d.setDate(d.getDate() + n); return d; }
+  function addYears2(date, n) { const d = new Date(date.getTime()); d.setFullYear(d.getFullYear() + n); return d; }
+  function weekRange2(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const day = (d.getDay() + 6) % 7;
+    const start = new Date(d); start.setDate(d.getDate() - day);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
+  function monthRange2(iso) {
+    const d = new Date(iso + "T00:00:00");
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }
+  const inRange2 = (dateStr, start, end) => dateStr >= start && dateStr <= end;
+
+  let extEntries = [];
+  let extPatientsDocs = [];
+  let extExpenses = [];
+  let extUser = null;
+  let extProfile = null;
+  let editingEntryId = null;
+
+  // ---- Inject new page markup into #main ----
+  const mainEl = document.getElementById("main");
+  mainEl.insertAdjacentHTML("beforeend", `
+    <div id="view-payments-real" style="display:none">
+      <h1 class="page-title">Payments</h1>
+      <p class="page-subtitle">Search, filter, edit, and manage every payment</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px">
+        <input class="text-input" id="paySearch" placeholder="Search patient name" style="max-width:220px; margin-bottom:0" />
+        <select class="text-input" id="payFeeFilter" style="max-width:160px; margin-bottom:0">
+          <option value="">All fee types</option>
+          <option value="counselling">Counselling</option>
+          <option value="medicine">Medicine</option>
+          <option value="referral">Referral</option>
+          <option value="other">Other</option>
+        </select>
+        <select class="text-input" id="payStatusFilter" style="max-width:140px; margin-bottom:0">
+          <option value="">All statuses</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+        </select>
+        <input class="text-input" type="date" id="payFromDate" style="max-width:150px; margin-bottom:0" />
+        <input class="text-input" type="date" id="payToDate" style="max-width:150px; margin-bottom:0" />
+      </div>
+      <div class="list-count" id="payListCount">0 entries</div>
+      <div id="payList"></div>
+    </div>
+
+    <div id="view-patients-real" style="display:none">
+      <h1 class="page-title">Patients</h1>
+      <p class="page-subtitle">Everyone with a payment on record, plus anyone you''ve added manually</p>
+      <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center">
+        <input class="text-input" id="patientSearch" placeholder="Search patients" style="max-width:240px; margin-bottom:0" />
+        <button class="export-btn tap" id="addPatientBtn">+ Add patient</button>
+      </div>
+      <div id="patientAddForm" class="panel" style="display:none">
+        <label class="field-label">Name</label>
+        <input class="text-input" id="newPatientName" required />
+        <label class="field-label">Mobile</label>
+        <input class="text-input" id="newPatientMobile" />
+        <label class="field-label">City</label>
+        <input class="text-input" id="newPatientCity" />
+        <label class="field-label">Notes</label>
+        <input class="text-input" id="newPatientNotes" />
+        <button id="savePatientBtn" class="submit-btn tap" style="width:auto; padding:10px 24px">Save patient</button>
+      </div>
+      <div id="patientList"></div>
+    </div>
+
+    <div id="view-reports-real" style="display:none">
+      <h1 class="page-title">Reports</h1>
+      <p class="page-subtitle">Received, pending, and fee-type breakdown for any period</p>
+      <div class="segmented" id="repPeriodSeg">
+        <button data-period="day" class="active">Day</button>
+        <button data-period="week">Week</button>
+        <button data-period="month">Month</button>
+      </div>
+      <div class="range-nav" style="margin-bottom:16px">
+        <button class="nav-btn tap" id="repPrevBtn">‹</button>
+        <div class="range-label" id="repRangeLabel">Today</div>
+        <button class="nav-btn tap" id="repNextBtn">›</button>
+      </div>
+      <div class="cards-row">
+        <div class="card"><div class="card-label">Received</div><div class="card-value" id="repReceived" style="color:#2F5233">₹0</div></div>
+        <div class="card"><div class="card-label">Pending</div><div class="card-value" id="repPending">₹0</div></div>
+        <div class="card"><div class="card-label">Transactions</div><div class="card-value" id="repTxnCount">0</div></div>
+      </div>
+      <div class="panel"><div class="panel-title">By fee type</div><div id="repTypeBars"></div></div>
+      <button class="export-btn tap" id="repExportBtn">Export this period as CSV</button>
+    </div>
+
+    <div id="view-expenses-real" style="display:none">
+      <h1 class="page-title">Expenses</h1>
+      <p class="page-subtitle">Track clinic running costs</p>
+      <div class="cards-row">
+        <div class="card"><div class="card-label">Total expenses</div><div class="card-value" id="expTotal">₹0</div></div>
+        <div class="card"><div class="card-label">Today</div><div class="card-value" id="expToday">₹0</div></div>
+        <div class="card"><div class="card-label">This month</div><div class="card-value" id="expMonth">₹0</div></div>
+      </div>
+      <form id="expenseForm" class="panel">
+        <div style="display:flex; gap:10px; flex-wrap:wrap">
+          <input class="text-input" id="expName" placeholder="Expense name" style="flex:1; min-width:160px" required />
+          <select class="text-input" id="expCategory" style="min-width:140px">
+            <option>Rent</option><option>Salaries</option><option>Supplies</option><option>Utilities</option><option>Other</option>
+          </select>
+          <input class="text-input" type="number" min="0" step="0.01" id="expAmount" placeholder="Amount" style="max-width:130px" required />
+          <input class="text-input" type="date" id="expDate" style="max-width:150px" required />
+        </div>
+        <input class="text-input" id="expNotes" placeholder="Notes (optional)" />
+        <button type="submit" class="submit-btn tap" style="width:auto; padding:10px 24px">Add expense</button>
+      </form>
+      <div id="expenseList"></div>
+    </div>
+
+    <div id="view-categories-real" style="display:none">
+      <h1 class="page-title">Categories</h1>
+      <p class="page-subtitle">Fixed payment categories used across the app</p>
+      <div class="plan-grid" id="categoryGrid"></div>
+      <p style="font-size:13px; color:var(--muted); max-width:520px">These four categories are built into how payments are recorded throughout the app. Custom categories aren''t supported yet — adding them would mean restructuring how every payment, report, and dashboard chart reads fee data, which hasn''t been done.</p>
+    </div>
+
+    <div id="view-settings-real" style="display:none">
+      <h1 class="page-title">Settings</h1>
+      <p class="page-subtitle">Your account, security, and subscription</p>
+      <div class="segmented" id="settingsTabs" style="width:100%; flex-wrap:wrap">
+        <button data-tab="profile" class="active">Profile</button>
+        <button data-tab="security">Security</button>
+        <button data-tab="subscription">Subscription</button>
+        <button data-tab="referral">Referral</button>
+        <button data-tab="data">Data &amp; Privacy</button>
+      </div>
+
+      <div id="settingsTab-profile" class="panel">
+        <label class="field-label">First name</label>
+        <input class="text-input" id="setFirstName" />
+        <label class="field-label">Last name</label>
+        <input class="text-input" id="setLastName" />
+        <label class="field-label">Email (read-only)</label>
+        <input class="text-input" id="setEmail" disabled />
+        <label class="field-label">Mobile number</label>
+        <input class="text-input" id="setMobile" />
+        <label class="field-label">City</label>
+        <input class="text-input" id="setCity" />
+        <button id="saveProfileBtn" class="submit-btn tap" style="width:auto; padding:10px 24px">Save profile</button>
+        <div class="auth-msg" id="profileMsg"></div>
+      </div>
+
+      <div id="settingsTab-security" class="panel" style="display:none">
+        <label class="field-label">Current password</label>
+        <input class="text-input" type="password" id="curPasswordInput" />
+        <label class="field-label">New password</label>
+        <input class="text-input" type="password" id="newPasswordInput" minlength="6" />
+        <label class="field-label">Confirm new password</label>
+        <input class="text-input" type="password" id="confirmNewPasswordInput" minlength="6" />
+        <button id="changePasswordBtn" class="submit-btn tap" style="width:auto; padding:10px 24px">Change password</button>
+        <div class="auth-msg" id="securityMsg"></div>
+      </div>
+
+      <div id="settingsTab-subscription" class="panel" style="display:none">
+        <div id="setSubPanel"></div>
+      </div>
+
+      <div id="settingsTab-referral" class="panel" style="display:none">
+        <div class="referral-box">
+          <div class="referral-code" id="setReferralCode">—</div>
+          <button class="export-btn tap" id="setCopyReferral">Copy link</button>
+        </div>
+      </div>
+
+      <div id="settingsTab-data" class="panel" style="display:none">
+        <button class="export-btn tap" id="setExportCsv" style="margin-bottom:14px">Export all payments (CSV)</button>
+        <div style="border-top:1px solid var(--line); padding-top:14px">
+          <div style="font-weight:600; color:#9C3B2E; margin-bottom:6px">Delete account</div>
+          <p style="font-size:13px; color:var(--muted); max-width:480px">This deletes your sign-in account only. Your payment/patient/expense records stay in the database — that''s a deliberate safeguard against accidental data loss, not an oversight.</p>
+          <button id="deleteAccountBtn" class="export-btn tap" style="border-color:#9C3B2E; color:#9C3B2E">Delete account</button>
+        </div>
+      </div>
+    </div>
+  `);
+
+  // ---- Edit payment modal ----
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="sheet-overlay" id="editSheetOverlay">
+      <form class="sheet" id="editEntryForm">
+        <h2>Edit payment</h2>
+        <label class="field-label">Patient name</label>
+        <input class="text-input" id="editPatientInput" required />
+        <label class="field-label">Fee types — amounts</label>
+        <div id="editFeeList" style="margin-bottom:14px"></div>
+        <label class="field-label">Date</label>
+        <input class="text-input" type="date" id="editDateInput" required />
+        <label class="field-label">Notes</label>
+        <input class="text-input" id="editNotesInput" />
+        <div class="checkbox-row">
+          <input type="checkbox" id="editPaidInput" style="width:18px;height:18px" />
+          <label for="editPaidInput" style="font-size:14px">Paid</label>
+        </div>
+        <div style="display:flex; gap:10px">
+          <button type="submit" class="submit-btn tap">Save changes</button>
+          <button type="button" id="cancelEditBtn" class="export-btn tap" style="flex-shrink:0">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `);
+
+  // ---- Wire up sidebar nav to show these real pages instead of the generic placeholder ----
+  const realViewMap = {
+    "placeholder-payments": "view-payments-real",
+    "placeholder-patients": "view-patients-real",
+    "placeholder-reports": "view-reports-real",
+    "placeholder-expenses": "view-expenses-real",
+    "placeholder-categories": "view-categories-real",
+    "placeholder-settings": "view-settings-real",
+  };
+  const allRealViews = Object.values(realViewMap);
+  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+    const view = item.dataset.view;
+    if (!realViewMap[view]) return;
+    item.addEventListener("click", () => {
+      document.getElementById("view-placeholder").style.display = "none";
+      allRealViews.forEach((v) => { document.getElementById(v).style.display = "none"; });
+      document.getElementById(realViewMap[view]).style.display = "block";
+      if (view === "placeholder-reports") renderReports();
+      if (view === "placeholder-categories") renderCategories();
+      if (view === "placeholder-settings") renderSettings();
+    });
+  });
+
+  // ---- Auth: independent listener, mirrors the main app''s user/profile ----
+  let unsubEntries2 = null, unsubPatients2 = null, unsubExpenses2 = null;
+  onAuthStateChanged(extAuth, async (user) => {
+    extUser = user;
+    if (unsubEntries2) { unsubEntries2(); unsubEntries2 = null; }
+    if (unsubPatients2) { unsubPatients2(); unsubPatients2 = null; }
+    if (unsubExpenses2) { unsubExpenses2(); unsubExpenses2 = null; }
+    if (!user) { extEntries = []; extPatientsDocs = []; extExpenses = []; extProfile = null; return; }
+
+    try {
+      const profSnap = await getDoc(doc(extDb, "users", user.uid));
+      extProfile = profSnap.exists() ? profSnap.data() : {};
+    } catch (e) { extProfile = {}; }
+
+    const qEntries = query(extClinicCol, where("userId", "==", user.uid));
+    unsubEntries2 = onSnapshot(qEntries, (snap) => {
+      extEntries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderPayments();
+      renderPatients();
+      renderReports();
+    });
+
+    const qPatients = query(extPatientsCol, where("userId", "==", user.uid));
+    unsubPatients2 = onSnapshot(qPatients, (snap) => {
+      extPatientsDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderPatients();
+    });
+
+    const qExpenses = query(extExpensesCol, where("userId", "==", user.uid));
+    unsubExpenses2 = onSnapshot(qExpenses, (snap) => {
+      extExpenses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      renderExpenses();
+    });
+  });
+
+  // =========================================================
+  // PAYMENTS PAGE
+  // =========================================================
+  function renderPayments() {
+    const search = (document.getElementById("paySearch").value || "").toLowerCase();
+    const feeFilter = document.getElementById("payFeeFilter").value;
+    const statusFilter = document.getElementById("payStatusFilter").value;
+    const fromDate = document.getElementById("payFromDate").value;
+    const toDate = document.getElementById("payToDate").value;
+
+    let list = [...extEntries];
+    if (search) list = list.filter((e) => (e.patient || "").toLowerCase().includes(search));
+    if (feeFilter) list = list.filter((e) => entryFeeKeys2(e).includes(feeFilter));
+    if (statusFilter) list = list.filter((e) => e.status === statusFilter);
+    if (fromDate) list = list.filter((e) => e.date >= fromDate);
+    if (toDate) list = list.filter((e) => e.date <= toDate);
+    list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+    document.getElementById("payListCount").textContent = `${list.length} ${list.length === 1 ? "entry" : "entries"}`;
+    const el = document.getElementById("payList");
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state">No payments match these filters.</div>`;
+      return;
+    }
+    el.innerHTML = list.map((e) => {
+      const keys = entryFeeKeys2(e);
+      const total = entryTotal2(e);
+      return `
+        <div class="entry-card">
+          <div class="entry-top">
+            <div style="flex:1 1 auto;min-width:0">
+              <div class="entry-name">${escapeHtml2(e.patient)}</div>
+              <div class="entry-date">${fmtDateShort2(e.date)}</div>
+            </div>
+            <div class="entry-right">
+              <div class="entry-total">${fmtMoney2(total)}</div>
+              <div style="margin-top:4px"><span class="stamp small" style="color:${e.status === "paid" ? "#2F5233" : "#9C3B2E"}">${e.status === "paid" ? "Paid" : "Pending"}</span></div>
+            </div>
+            <button class="export-btn tap" data-action="edit" data-id="${e.id}" style="padding:5px 10px; font-size:11px">Edit</button>
+            <button class="del-btn tap" data-action="pdelete" data-id="${e.id}" aria-label="Delete">✕</button>
+          </div>
+          <div class="fee-tags">
+            ${keys.map((k) => `<span class="fee-tag"><span class="fee-dot" style="background:${feeMeta2(k).color}"></span><span class="fee-tag-label">${feeMeta2(k).label}</span><span class="fee-tag-amt">${fmtMoney2(e.fees[k])}</span></span>`).join("")}
+          </div>
+          ${e.notes ? `<div class="entry-notes">${escapeHtml2(e.notes)}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+
+    el.querySelectorAll("[data-action=''pdelete'']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (confirm("Delete this entry? This can''t be undone.")) {
+          await deleteDoc(doc(extDb, "clinic_entries", btn.dataset.id));
+        }
+      });
+    });
+    el.querySelectorAll("[data-action=''edit'']").forEach((btn) => {
+      btn.addEventListener("click", () => openEditModal(btn.dataset.id));
+    });
+  }
+  ["paySearch", "payFeeFilter", "payStatusFilter", "payFromDate", "payToDate"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", renderPayments);
+  });
+
+  function openEditModal(id) {
+    const entry = extEntries.find((e) => e.id === id);
+    if (!entry) return;
+    editingEntryId = id;
+    document.getElementById("editPatientInput").value = entry.patient || "";
+    document.getElementById("editDateInput").value = entry.date || todayISO2();
+    document.getElementById("editNotesInput").value = entry.notes || "";
+    document.getElementById("editPaidInput").checked = entry.status === "paid";
+    const feeListEl = document.getElementById("editFeeList");
+    feeListEl.innerHTML = FEE_TYPES2.map((f) => {
+      const val = (entry.fees || {})[f.key] || "";
+      return `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+          <span style="width:90px; font-size:13px">${f.label}</span>
+          <input type="number" min="0" step="0.01" class="text-input" style="margin-bottom:0" data-editkey="${f.key}" value="${val}" placeholder="0" />
+        </div>
+      `;
+    }).join("");
+    document.getElementById("editSheetOverlay").classList.add("open");
+  }
+  document.getElementById("cancelEditBtn").addEventListener("click", () => {
+    document.getElementById("editSheetOverlay").classList.remove("open");
+  });
+  document.getElementById("editSheetOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "editSheetOverlay") document.getElementById("editSheetOverlay").classList.remove("open");
+  });
+  document.getElementById("editEntryForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!editingEntryId) return;
+    const fees = {};
+    document.querySelectorAll("[data-editkey]").forEach((input) => {
+      const v = parseFloat(input.value);
+      if (v > 0) fees[input.dataset.editkey] = v;
+    });
+    const paid = document.getElementById("editPaidInput").checked;
+    await updateDoc(doc(extDb, "clinic_entries", editingEntryId), {
+      patient: document.getElementById("editPatientInput").value.trim(),
+      date: document.getElementById("editDateInput").value,
+      notes: document.getElementById("editNotesInput").value.trim(),
+      fees,
+      status: paid ? "paid" : "pending",
+      paidAt: paid ? todayISO2() : null,
+    });
+    document.getElementById("editSheetOverlay").classList.remove("open");
+  });
+
+  // =========================================================
+  // PATIENTS PAGE
+  // =========================================================
+  function renderPatients() {
+    const search = (document.getElementById("patientSearch").value || "").toLowerCase();
+
+    const byName = {};
+    extEntries.forEach((e) => {
+      const key = (e.patient || "").trim().toLowerCase();
+      if (!key) return;
+      if (!byName[key]) byName[key] = { name: e.patient, paid: 0, pending: 0, count: 0, lastDate: e.date };
+      const total = entryTotal2(e);
+      if (e.status === "paid") byName[key].paid += total; else byName[key].pending += total;
+      byName[key].count += 1;
+      if (e.date > byName[key].lastDate) byName[key].lastDate = e.date;
+    });
+    extPatientsDocs.forEach((p) => {
+      const key = (p.name || "").trim().toLowerCase();
+      if (!key) return;
+      if (!byName[key]) byName[key] = { name: p.name, paid: 0, pending: 0, count: 0, lastDate: null, mobile: p.mobile, city: p.city, notes: p.notes };
+      else { byName[key].mobile = p.mobile; byName[key].city = p.city; byName[key].notes = p.notes; }
+    });
+
+    let list = Object.values(byName);
+    if (search) list = list.filter((p) => p.name.toLowerCase().includes(search));
+    list.sort((a, b) => a.name.localeCompare(b.name));
+
+    const el = document.getElementById("patientList");
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state">No patients yet.</div>`;
+      return;
+    }
+    el.innerHTML = list.map((p) => `
+      <div class="entry-card">
+        <div class="entry-top">
+          <div style="flex:1 1 auto;min-width:0">
+            <div class="entry-name">${escapeHtml2(p.name)}</div>
+            <div class="entry-date">${p.count} ${p.count === 1 ? "visit" : "visits"}${p.lastDate ? " · last " + fmtDateShort2(p.lastDate) : ""}${p.mobile ? " · " + escapeHtml2(p.mobile) : ""}${p.city ? " · " + escapeHtml2(p.city) : ""}</div>
+          </div>
+          <div class="entry-right">
+            <div class="entry-total" style="color:#2F5233">${fmtMoney2(p.paid)}</div>
+            ${p.pending > 0 ? `<div style="font-size:11px; color:#B8862E; margin-top:2px">${fmtMoney2(p.pending)} pending</div>` : ""}
+          </div>
+        </div>
+        ${p.notes ? `<div class="entry-notes">${escapeHtml2(p.notes)}</div>` : ""}
+      </div>
+    `).join("");
+  }
+  document.getElementById("patientSearch").addEventListener("input", renderPatients);
+  document.getElementById("addPatientBtn").addEventListener("click", () => {
+    const form = document.getElementById("patientAddForm");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+  });
+  document.getElementById("savePatientBtn").addEventListener("click", async () => {
+    const name = document.getElementById("newPatientName").value.trim();
+    if (!name || !extUser) return;
+    await addDoc(extPatientsCol, {
+      userId: extUser.uid,
+      name,
+      mobile: document.getElementById("newPatientMobile").value.trim(),
+      city: document.getElementById("newPatientCity").value.trim(),
+      notes: document.getElementById("newPatientNotes").value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    document.getElementById("newPatientName").value = "";
+    document.getElementById("newPatientMobile").value = "";
+    document.getElementById("newPatientCity").value = "";
+    document.getElementById("newPatientNotes").value = "";
+    document.getElementById("patientAddForm").style.display = "none";
+  });
+
+  // =========================================================
+  // REPORTS PAGE
+  // =========================================================
+  let repPeriod = "day";
+  let repAnchor = todayISO2();
+  function repRange() {
+    if (repPeriod === "day") return { start: repAnchor, end: repAnchor };
+    if (repPeriod === "week") return weekRange2(repAnchor);
+    return monthRange2(repAnchor);
+  }
+  function repLabel(range) {
+    if (repPeriod === "day") return repAnchor === todayISO2() ? "Today" : fmtDateShort2(repAnchor);
+    if (repPeriod === "week") return `${fmtDateShort2(range.start)} – ${fmtDateShort2(range.end)}`;
+    const d = new Date(repAnchor + "T00:00:00");
+    return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  }
+  function renderReports() {
+    const range = repRange();
+    document.getElementById("repRangeLabel").textContent = repLabel(range);
+    const list = extEntries.filter((e) => inRange2(e.date, range.start, range.end));
+    let received = 0, pending = 0;
+    const byType = { counselling: 0, medicine: 0, referral: 0, other: 0 };
+    list.forEach((e) => {
+      const total = entryTotal2(e);
+      if (e.status === "paid") {
+        received += total;
+        Object.entries(e.fees || {}).forEach(([k, v]) => { byType[k] = (byType[k] || 0) + v; });
+      } else pending += total;
+    });
+    document.getElementById("repReceived").textContent = fmtMoney2(received);
+    document.getElementById("repPending").textContent = fmtMoney2(pending);
+    document.getElementById("repTxnCount").textContent = list.length;
+    const maxVal = Math.max(1, ...Object.values(byType));
+    document.getElementById("repTypeBars").innerHTML = FEE_TYPES2.map((f) => `
+      <div class="bar-row">
+        <div class="top"><span>${f.label}</span><span style="font-family:''IBM Plex Mono'',monospace;font-weight:600">${fmtMoney2(byType[f.key])}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(byType[f.key] / maxVal) * 100}%;background:${f.color}"></div></div>
+      </div>
+    `).join("");
+  }
+  document.querySelectorAll("#repPeriodSeg button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      repPeriod = btn.dataset.period;
+      document.querySelectorAll("#repPeriodSeg button").forEach((b) => b.classList.toggle("active", b === btn));
+      renderReports();
+    });
+  });
+  document.getElementById("repPrevBtn").addEventListener("click", () => { shiftRep(-1); });
+  document.getElementById("repNextBtn").addEventListener("click", () => { shiftRep(1); });
+  function shiftRep(dir) {
+    const d = new Date(repAnchor + "T00:00:00");
+    if (repPeriod === "day") d.setDate(d.getDate() + dir);
+    else if (repPeriod === "week") d.setDate(d.getDate() + dir * 7);
+    else d.setMonth(d.getMonth() + dir);
+    repAnchor = d.toISOString().slice(0, 10);
+    renderReports();
+  }
+  document.getElementById("repExportBtn").addEventListener("click", () => {
+    const range = repRange();
+    const list = extEntries.filter((e) => inRange2(e.date, range.start, range.end));
+    const header = ["Date", "Patient", "Counselling", "Medicine", "Referral", "Other", "Total", "Status", "Notes"];
+    const rows = list.map((e) => {
+      const f = e.fees || {};
+      const esc = (v) => `"${String(v ?? "").replace(/"/g, ''""'')}"`;
+      return [e.date, esc(e.patient), f.counselling || "", f.medicine || "", f.referral || "", f.other || "", entryTotal2(e), e.status, esc(e.notes || "")].join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `report-${repAnchor}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // =========================================================
+  // EXPENSES PAGE
+  // =========================================================
+  document.getElementById("expDate").value = todayISO2();
+  function renderExpenses() {
+    let total = 0, todayTotal = 0, monthTotal = 0;
+    const today = todayISO2();
+    const monthPrefix = today.slice(0, 7);
+    const sorted = [...extExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
+    sorted.forEach((x) => {
+      total += Number(x.amount) || 0;
+      if (x.date === today) todayTotal += Number(x.amount) || 0;
+      if ((x.date || "").startsWith(monthPrefix)) monthTotal += Number(x.amount) || 0;
+    });
+    document.getElementById("expTotal").textContent = fmtMoney2(total);
+    document.getElementById("expToday").textContent = fmtMoney2(todayTotal);
+    document.getElementById("expMonth").textContent = fmtMoney2(monthTotal);
+
+    const el = document.getElementById("expenseList");
+    if (sorted.length === 0) {
+      el.innerHTML = `<div class="empty-state">No expenses logged yet.</div>`;
+      return;
+    }
+    el.innerHTML = sorted.map((x) => `
+      <div class="entry-card">
+        <div class="entry-top">
+          <div style="flex:1 1 auto;min-width:0">
+            <div class="entry-name">${escapeHtml2(x.name)}</div>
+            <div class="entry-date">${fmtDateShort2(x.date)} · ${escapeHtml2(x.category)}</div>
+          </div>
+          <div class="entry-right"><div class="entry-total">${fmtMoney2(x.amount)}</div></div>
+          <button class="del-btn tap" data-action="edelete" data-id="${x.id}" aria-label="Delete">✕</button>
+        </div>
+        ${x.notes ? `<div class="entry-notes">${escapeHtml2(x.notes)}</div>` : ""}
+      </div>
+    `).join("");
+    el.querySelectorAll("[data-action=''edelete'']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (confirm("Delete this expense?")) await deleteDoc(doc(extDb, "expenses", btn.dataset.id));
+      });
+    });
+  }
+  document.getElementById("expenseForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!extUser) return;
+    await addDoc(extExpensesCol, {
+      userId: extUser.uid,
+      name: document.getElementById("expName").value.trim(),
+      category: document.getElementById("expCategory").value,
+      amount: parseFloat(document.getElementById("expAmount").value) || 0,
+      date: document.getElementById("expDate").value,
+      notes: document.getElementById("expNotes").value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+    document.getElementById("expenseForm").reset();
+    document.getElementById("expDate").value = todayISO2();
+  });
+
+  // =========================================================
+  // CATEGORIES PAGE
+  // =========================================================
+  function renderCategories() {
+    const byType = { counselling: 0, medicine: 0, referral: 0, other: 0 };
+    extEntries.forEach((e) => {
+      if (e.status === "paid") Object.entries(e.fees || {}).forEach(([k, v]) => { byType[k] = (byType[k] || 0) + v; });
+    });
+    document.getElementById("categoryGrid").innerHTML = FEE_TYPES2.map((f) => `
+      <div class="plan-card">
+        <div class="plan-name" style="color:${f.color}">${f.label}</div>
+        <div class="plan-price">${fmtMoney2(byType[f.key])}</div>
+        <div style="font-size:12px; color:var(--muted)">total received all-time</div>
+      </div>
+    `).join("");
+  }
+
+  // =========================================================
+  // SETTINGS PAGE
+  // =========================================================
+  document.querySelectorAll("#settingsTabs button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll("#settingsTabs button").forEach((b) => b.classList.toggle("active", b === btn));
+      ["profile", "security", "subscription", "referral", "data"].forEach((t) => {
+        document.getElementById("settingsTab-" + t).style.display = t === btn.dataset.tab ? "block" : "none";
+      });
+    });
+  });
+  function renderSettings() {
+    if (!extProfile) return;
+    document.getElementById("setFirstName").value = extProfile.firstName || "";
+    document.getElementById("setLastName").value = extProfile.lastName || "";
+    document.getElementById("setEmail").value = extProfile.email || (extUser ? extUser.email : "");
+    document.getElementById("setMobile").value = extProfile.mobile || "";
+    document.getElementById("setCity").value = extProfile.city || "";
+    document.getElementById("setReferralCode").textContent = extProfile.referralCode || "—";
+
+    const createdAt = extProfile.createdAt ? new Date(extProfile.createdAt) : new Date();
+    const trialEnd = addDays2(createdAt, 15);
+    const now = new Date();
+    const paidPlan = extProfile.subscriptionPlan;
+    const paidStart = extProfile.subscriptionStart ? new Date(extProfile.subscriptionStart) : null;
+    let paidEnd = null;
+    if (paidStart && paidPlan === "monthly") paidEnd = addMonths2(paidStart, 1);
+    if (paidStart && paidPlan === "yearly") paidEnd = addYears2(paidStart, 1);
+    let statusLabel, statusDetail;
+    if (paidEnd && paidEnd > now) { statusLabel = "Active"; statusDetail = `${paidPlan} plan, renews ${fmtDateLong2(paidEnd)}`; }
+    else if (trialEnd > now) { statusLabel = "Free Trial"; statusDetail = `Valid till ${fmtDateLong2(trialEnd)}`; }
+    else { statusLabel = "Expired"; statusDetail = "Choose a plan to continue."; }
+    document.getElementById("setSubPanel").innerHTML = `
+      <div style="font-weight:600; margin-bottom:6px">${statusLabel}</div>
+      <div style="font-size:13px; color:var(--muted); margin-bottom:10px">${statusDetail}</div>
+      <div style="font-size:13px; color:var(--muted)">Trial: ${fmtDateLong2(createdAt)} → ${fmtDateLong2(trialEnd)}</div>
+    `;
+  }
+  document.getElementById("saveProfileBtn").addEventListener("click", async () => {
+    if (!extUser) return;
+    await updateDoc(doc(extDb, "users", extUser.uid), {
+      firstName: document.getElementById("setFirstName").value.trim(),
+      lastName: document.getElementById("setLastName").value.trim(),
+      mobile: document.getElementById("setMobile").value.trim(),
+      city: document.getElementById("setCity").value.trim(),
+    });
+    const msg = document.getElementById("profileMsg");
+    msg.textContent = "Saved.";
+    msg.className = "auth-msg ok";
+    setTimeout(() => { msg.textContent = ""; }, 2000);
+  });
+  document.getElementById("changePasswordBtn").addEventListener("click", async () => {
+    const msg = document.getElementById("securityMsg");
+    msg.className = "auth-msg";
+    const cur = document.getElementById("curPasswordInput").value;
+    const next = document.getElementById("newPasswordInput").value;
+    const confirmNext = document.getElementById("confirmNewPasswordInput").value;
+    if (next.length < 6) { msg.textContent = "New password must be at least 6 characters."; msg.className = "auth-msg error"; return; }
+    if (next !== confirmNext) { msg.textContent = "Passwords don''t match."; msg.className = "auth-msg error"; return; }
+    try {
+      const cred = EmailAuthProvider.credential(extUser.email, cur);
+      await reauthenticateWithCredential(extUser, cred);
+      await updatePassword(extUser, next);
+      msg.textContent = "Password changed successfully.";
+      msg.className = "auth-msg ok";
+      document.getElementById("curPasswordInput").value = "";
+      document.getElementById("newPasswordInput").value = "";
+      document.getElementById("confirmNewPasswordInput").value = "";
+    } catch (err) {
+      msg.textContent = "Could not change password — check your current password is correct.";
+      msg.className = "auth-msg error";
+    }
+  });
+  document.getElementById("setCopyReferral").addEventListener("click", () => {
+    const code = extProfile && extProfile.referralCode ? extProfile.referralCode : "";
+    navigator.clipboard.writeText(window.location.origin + "/?ref=" + code);
+    const btn = document.getElementById("setCopyReferral");
+    const old = btn.textContent; btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = old; }, 1500);
+  });
+  document.getElementById("setExportCsv").addEventListener("click", () => {
+    document.getElementById("exportBtn").click();
+  });
+  document.getElementById("deleteAccountBtn").addEventListener("click", async () => {
+    if (!confirm("Delete your account? You will be signed out. Your data stays in the database unless removed separately.")) return;
+    const pwd = prompt("Re-enter your password to confirm:");
+    if (!pwd) return;
+    try {
+      const cred = EmailAuthProvider.credential(extUser.email, pwd);
+      await reauthenticateWithCredential(extUser, cred);
+      await deleteUser(extUser);
+    } catch (err) {
+      alert("Could not delete account — check your password and try again.");
+    }
+  });
+</script>
+
+<style>
+  #authPageWrap { display: flex; min-height: 100vh; }
+  #authPageWrap:has(#authScreen[style*="display: none"]) { display: none !important; }
+  #authLeftPanel {
+    flex: 0 0 50%; width: 50%; background: linear-gradient(160deg, #101B33, #1B2A4A);
+    color: #fff; padding: 48px 44px; display: flex; flex-direction: column; justify-content: center;
+    box-sizing: border-box;
+  }
+  #authLeftPanel .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: 0.04em; margin-bottom: 40px; }
+  #authLeftPanel h2 { font-family: ''Fraunces'', serif; font-size: 30px; font-weight: 600; margin: 0 0 12px; line-height: 1.2; }
+  #authLeftPanel .sub { color: #A8B3C7; font-size: 14px; margin-bottom: 34px; max-width: 320px; }
+  .auth-feature { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+  .auth-feature .fi { width: 34px; height: 34px; border-radius: 8px; background: rgba(46,91,255,0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .auth-feature .ft { font-weight: 600; font-size: 14px; color: #fff; }
+  .auth-feature .fd { font-size: 12px; color: #A8B3C7; }
+  #authScreen { flex: 0 0 50%; width: 50%; box-sizing: border-box; padding: 40px 20px; display: flex; align-items: center; justify-content: center; }
+  @media (max-width: 860px) {
+    #authLeftPanel { display: none; }
+    #authScreen { flex: 0 0 100%; width: 100%; }
+  }
+</style>
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const authScreenEl = document.getElementById("authScreen");
+  const wrap = document.createElement("div");
+  wrap.id = "authPageWrap";
+  authScreenEl.parentNode.insertBefore(wrap, authScreenEl);
+  wrap.appendChild(authScreenEl);
+  wrap.insertAdjacentHTML("afterbegin", `
+    <div id="authLeftPanel">
+      <div class="logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg>
+        <span>CLINIC LEDGER</span>
+      </div>
+      <h2>Smart way to<br/>manage your clinic</h2>
+      <div class="sub">Track payments, manage patients, and grow your practice with Clinic Ledger.</div>
+      <div class="auth-feature">
+        <div class="fi">🎁</div>
+        <div><div class="ft">1 Month Free Trial</div><div class="fd">Try all features absolutely free</div></div>
+      </div>
+      <div class="auth-feature">
+        <div class="fi">🛡️</div>
+        <div><div class="ft">Secure &amp; Reliable</div><div class="fd">Your data is safe with us</div></div>
+      </div>
+      <div class="auth-feature">
+        <div class="fi">⚡</div>
+        <div><div class="ft">Simple &amp; Easy to Use</div><div class="fd">Built for clinics and healthcare professionals</div></div>
+      </div>
+    </div>
+  `);
+
+  // Swap heading text/icon to match sign-in vs sign-up vs forgot-password state
+  const heading = document.getElementById("authHeading");
+  const eyebrow = document.querySelector("#authScreen .eyebrow");
+  function refreshHeading() {
+    const inReset = document.getElementById("resetPanel").style.display !== "none";
+    if (inReset) { heading.textContent = "Forgot Password?"; return; }
+    const signupFieldsVisible = document.getElementById("signupFields").style.display !== "none";
+    heading.textContent = signupFieldsVisible ? "Create Your Account" : "Welcome Back!";
+  }
+  new MutationObserver(refreshHeading).observe(document.getElementById("signupFields"), { attributes: true, attributeFilter: ["style"] });
+  new MutationObserver(refreshHeading).observe(document.getElementById("resetPanel"), { attributes: true, attributeFilter: ["style"] });
+  refreshHeading();
+
+  // Real "Remember me" — controls whether sign-in persists after closing the browser
+  const emailForm = document.getElementById("emailForm");
+  const rememberRow = document.createElement("div");
+  rememberRow.style.cssText = "display:flex; align-items:center; gap:6px; margin:-6px 0 14px; font-size:13px; color:var(--muted)";
+  rememberRow.innerHTML = `<input type="checkbox" id="rememberMeInput" checked style="width:15px;height:15px" /><label for="rememberMeInput">Remember me</label>`;
+  const pwField = document.getElementById("passwordInput").closest("form") ? document.getElementById("passwordInput") : null;
+  document.getElementById("confirmPasswordGroup").insertAdjacentElement("afterend", rememberRow);
+
+  const extApp2 = getApp();
+  const extAuth2 = getAuth(extApp2);
+  emailForm.addEventListener("submit", () => {
+    const remember = document.getElementById("rememberMeInput").checked;
+    setPersistence(extAuth2, remember ? browserLocalPersistence : browserSessionPersistence);
+  }, true); // capture phase — runs before the original submit handler
+</script>
+
+
+
+
+
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const ppApp = getApp();
+  const ppAuth = getAuth(ppApp);
+  const ppDb = getFirestore(ppApp);
+  const CLOUDINARY_CLOUD_NAME = "het3cnao";
+  const CLOUDINARY_UPLOAD_PRESET = "clinic_ledger_unsigned";
+  let ppUser = null;
+
+  function renderAvatar(photoURL, initials) {
+    const el = document.getElementById("avatarInitials");
+    if (!el) return;
+    if (photoURL) {
+      el.innerHTML = `<img src="${photoURL}" style="width:100%;height:100%;border-radius:50%;object-fit:cover" />`;
+    } else {
+      el.textContent = initials || "?";
+    }
+  }
+
+  function injectControls() {
+    const panel = document.getElementById("settingsTab-profile");
+    if (!panel || document.getElementById("photoUploadRow")) return;
+    panel.insertAdjacentHTML("afterbegin", `
+      <div id="photoUploadRow" style="display:flex; align-items:center; gap:16px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--line)">
+        <div id="photoPreview" style="width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; overflow:hidden; flex-shrink:0">?</div>
+        <div>
+          <input type="file" id="photoFileInput" accept="image/png, image/jpeg" style="display:none" />
+          <button type="button" id="choosePhotoBtn" class="export-btn tap" style="margin-right:8px">Change photo</button>
+          <button type="button" id="removePhotoBtn" class="export-btn tap" style="border-color:#9C3B2E; color:#9C3B2E">Remove</button>
+          <div style="font-size:12px; color:var(--muted); margin-top:6px">JPG or PNG, up to 3MB</div>
+          <div class="auth-msg" id="photoMsg"></div>
+        </div>
+      </div>
+    `);
+    document.getElementById("choosePhotoBtn").addEventListener("click", () => {
+      document.getElementById("photoFileInput").click();
+    });
+    document.getElementById("photoFileInput").addEventListener("change", handleFileSelect);
+    document.getElementById("removePhotoBtn").addEventListener("click", handleRemove);
+  }
+  const injectTimer = setInterval(() => {
+    if (document.getElementById("settingsTab-profile")) {
+      injectControls();
+      clearInterval(injectTimer);
+    }
+  }, 300);
+
+  async function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file || !ppUser) return;
+    const msg = document.getElementById("photoMsg");
+    msg.className = "auth-msg";
+    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+      msg.textContent = "Please choose a JPG or PNG image.";
+      msg.className = "auth-msg error";
+      return;
+    }
+    if (file.size > 3 * 1024 * 1024) {
+      msg.textContent = "Image must be under 3MB.";
+      msg.className = "auth-msg error";
+      return;
+    }
+    msg.textContent = "Uploading…";
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      formData.append("folder", `clinic-ledger/profile-images/${ppUser.uid}`);
+      formData.append("public_id", "photo_" + Date.now());
+      const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!cloudRes.ok) {
+        const errBody = await cloudRes.json().catch(() => ({}));
+        throw new Error(errBody.error && errBody.error.message ? errBody.error.message : "Cloudinary upload failed");
+      }
+      const cloudData = await cloudRes.json();
+      let url = cloudData.secure_url;
+      url = url.replace("/image/upload/", "/image/upload/c_fill,g_face,h_200,w_200,q_auto,f_auto/");
+      await updateDoc(doc(ppDb, "users", ppUser.uid), { photoURL: url });
+      const preview = document.getElementById("photoPreview");
+      if (preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover" />`;
+      renderAvatar(url, null);
+      msg.textContent = "Photo updated.";
+      msg.className = "auth-msg ok";
+    } catch (err) {
+      console.error("[Clinic Ledger] Photo upload FAILED:", err.code, err.message);
+      msg.textContent = "Could not upload photo (" + (err.code || "unknown error") + "). Please try again.";
+      msg.className = "auth-msg error";
+    }
+  }
+
+  async function handleRemove() {
+    if (!ppUser) return;
+    const msg = document.getElementById("photoMsg");
+    try {
+      // Cloudinary asset deletion needs a secure backend — not done from the browser.
+      // Removing the Firestore reference is sufficient for now.
+      await updateDoc(doc(ppDb, "users", ppUser.uid), { photoURL: null });
+      const preview = document.getElementById("photoPreview");
+      const firstName = (document.getElementById("setFirstName") || {}).value || "";
+      const lastName = (document.getElementById("setLastName") || {}).value || "";
+      const initials = ((firstName[0] || "") + (lastName[0] || "")).toUpperCase() || "?";
+      if (preview) preview.textContent = initials;
+      renderAvatar(null, initials);
+      msg.textContent = "Photo removed.";
+      msg.className = "auth-msg ok";
+    } catch (err) {
+      msg.textContent = "Could not remove photo — please try again.";
+      msg.className = "auth-msg error";
+    }
+  }
+
+  onAuthStateChanged(ppAuth, async (user) => {
+    ppUser = user;
+    if (!user) return;
+    try {
+      const snap = await getDoc(doc(ppDb, "users", user.uid));
+      const data = snap.exists() ? snap.data() : {};
+      const initials = ((data.firstName || "")[0] || "").toUpperCase() + ((data.lastName || "")[0] || "").toUpperCase();
+      renderAvatar(data.photoURL, initials || "?");
+      const preview = document.getElementById("photoPreview");
+      if (preview) {
+        if (data.photoURL) preview.innerHTML = `<img src="${data.photoURL}" style="width:100%;height:100%;object-fit:cover" />`;
+        else preview.textContent = initials || "?";
+      }
+    } catch (e) {}
+  });
+</script>
+<style>
+  #authScreen { max-width: none !important; }
+</style>
+<script>
+  const _authScreenEl = document.getElementById("authScreen");
+  const _authWrap = document.getElementById("authPageWrap");
+  if (_authScreenEl && _authWrap) {
+    const syncWrapVisibility = () => {
+      _authWrap.style.display = _authScreenEl.style.display === "none" ? "none" : "flex";
+    };
+    new MutationObserver(syncWrapVisibility).observe(_authScreenEl, { attributes: true, attributeFilter: ["style"] });
+    syncWrapVisibility();
+  }
+</script>
+<script>
+  document.getElementById("firstNameInput").placeholder = "First name";
+  document.getElementById("lastNameInput").placeholder = "Last name";
+  document.getElementById("cityInput").placeholder = "City";
+  document.getElementById("mobileInput").placeholder = "Mobile number";
+  document.getElementById("emailInput").placeholder = "Email address";
+
+  document.getElementById("firstNameInput").autocomplete = "off";
+  document.getElementById("lastNameInput").autocomplete = "off";
+  document.getElementById("cityInput").autocomplete = "off";
+  document.getElementById("mobileInput").autocomplete = "off";
+  document.getElementById("emailInput").autocomplete = "off";
+  document.getElementById("passwordInput").autocomplete = "new-password";
+  document.getElementById("confirmPasswordInput").autocomplete = "new-password";
+
+  const signupFieldsEl = document.getElementById("signupFields");
+  const subtitleEl = document.createElement("p");
+  subtitleEl.id = "signupSubtitle";
+  subtitleEl.style.cssText = "text-align:center; color:var(--muted); font-size:13px; margin:-16px 0 20px; display:none";
+  subtitleEl.textContent = "Sign up and get 1 month free access";
+  document.getElementById("authHeading").insertAdjacentElement("afterend", subtitleEl);
+
+  const termsRow = document.createElement("div");
+  termsRow.id = "termsRow";
+  termsRow.style.cssText = "display:flex; align-items:flex-start; gap:8px; margin-bottom:16px; font-size:13px; color:var(--muted)";
+  termsRow.innerHTML = `<input type="checkbox" id="agreeTermsInput" style="width:16px;height:16px; margin-top:2px" />
+    <label for="agreeTermsInput">I agree to the Terms &amp; Conditions and Privacy Policy</label>`;
+  document.getElementById("confirmPasswordGroup").insertAdjacentElement("afterend", termsRow);
+
+  function syncSignupExtras() {
+    const isSignup = signupFieldsEl.style.display !== "none";
+    subtitleEl.style.display = isSignup ? "block" : "none";
+    termsRow.style.display = isSignup ? "flex" : "none";
+  }
+  new MutationObserver(syncSignupExtras).observe(signupFieldsEl, { attributes: true, attributeFilter: ["style"] });
+  syncSignupExtras();
+
+  document.getElementById("emailForm").addEventListener("submit", (e) => {
+    const isSignup = signupFieldsEl.style.display !== "none";
+    if (isSignup && !document.getElementById("agreeTermsInput").checked) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      alert("Please agree to the Terms & Conditions and Privacy Policy to continue.");
+    }
+  }, true);
+
+  document.getElementById("emailToggle").addEventListener("click", (e) => {
+    if (e.target.tagName !== "A") return;
+    ["firstNameInput", "lastNameInput", "cityInput", "mobileInput", "referredByInput",
+     "emailInput", "passwordInput", "confirmPasswordInput"].forEach((id) => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("agreeTermsInput").checked = false;
+  });
+</script>
+<script>
+  ["firstNameInput", "lastNameInput", "cityInput", "mobileInput", "emailInput"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute("readonly", "readonly");
+    el.setAttribute("name", "fld_" + Math.random().toString(36).slice(2, 10));
+    const enableTyping = () => { el.removeAttribute("readonly"); };
+    el.addEventListener("focus", enableTyping);
+    el.addEventListener("touchstart", enableTyping);
+  });
+</script>
+<style>
+  #authPageWrap.signin-mode { justify-content: center; align-items: center; }
+  #authPageWrap.signin-mode #authLeftPanel { display: none !important; }
+  #authPageWrap.signin-mode #authScreen { flex: none; width: 100%; max-width: 460px; }
+  .signin-logo { display: flex; justify-content: center; margin-bottom: 18px; }
+  .signin-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; color: var(--muted); font-size: 13px; }
+  .signin-divider::before, .signin-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .back-to-signup-btn { background: #F0F2F5; border-radius: 8px; padding: 13px 0; }
+  .back-to-signup-btn a { display: block; width: 100%; text-align: center; color: var(--ink) !important; font-weight: 700; font-size: 15px; text-decoration: none !important; }
+  .security-footer { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: 13px; margin-top: 22px; }
+</style>
+<script>
+  const authWrapEl2 = document.getElementById("authPageWrap");
+  const emailToggleEl = document.getElementById("emailToggle");
+  const signupFieldsEl2 = document.getElementById("signupFields");
+
+  const signinLogo = document.createElement("div");
+  signinLogo.className = "signin-logo";
+  signinLogo.innerHTML = `<svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-8.5C.7 8.8 2.3 5 6 5c2 0 3.3 1 4 2 0.7-1 2-2 4-2 3.7 0 5.3 3.8 3.5 7.5C19 16.65 12 21 12 21z" fill="#2E5BFF"/><path d="M9 11h2v-2h2v2h2v2h-2v2h-2v-2H9z" fill="#fff"/></svg>`;
+  document.getElementById("authHeading").insertAdjacentElement("beforebegin", signinLogo);
+
+  const securityFooter = document.createElement("div");
+  securityFooter.className = "security-footer";
+  securityFooter.innerHTML = `🔒 Your data is protected and secure`;
+  document.getElementById("signInPanel").appendChild(securityFooter);
+
+  emailToggleEl.insertAdjacentHTML("beforebegin", `<div class="signin-divider" id="signinDivider">or</div>`);
+  const dividerEl = document.getElementById("signinDivider");
+
+  function syncSigninLayout() {
+    const isSignup = signupFieldsEl2.style.display !== "none";
+    authWrapEl2.classList.toggle("signin-mode", !isSignup);
+    signinLogo.style.display = isSignup ? "none" : "flex";
+    securityFooter.style.display = isSignup ? "none" : "flex";
+    dividerEl.style.display = isSignup ? "none" : "flex";
+    if (isSignup) {
+      emailToggleEl.className = "auth-toggle";
+      emailToggleEl.innerHTML = ''Already have an account? <a>Sign In</a>'';
+    } else {
+      emailToggleEl.className = "back-to-signup-btn";
+      emailToggleEl.innerHTML = ''<a>← Back to Sign Up</a>'';
+    }
+  }
+  new MutationObserver(syncSigninLayout).observe(signupFieldsEl2, { attributes: true, attributeFilter: ["style"] });
+  syncSigninLayout();
+</script>
+
+
+<style>
+  .text-input { padding: 9px 12px; margin-bottom: 9px; font-size: 14px; }
+  label.field-label { margin-bottom: 2px; font-size: 11px; }
+  #authScreen { padding: 24px 20px; }
+  #authScreen h1 { font-size: 22px; margin-bottom: 4px; }
+  #authScreen .eyebrow { margin-bottom: 2px; }
+  #signupSubtitle { margin: -6px 0 12px !important; }
+  #termsRow { margin-bottom: 10px !important; font-size: 12px !important; }
+  .submit-btn { padding: 10px 0; }
+  .security-footer { margin-top: 10px !important; }
+  .signin-divider { margin: 10px 0 !important; }
+  .auth-toggle { margin-top: 4px; font-size: 13px; }
+  #authPageWrap:not(.signin-mode) { align-items: stretch; }
+  #authPageWrap:not(.signin-mode) #authScreen { overflow-y: auto; max-height: 100vh; }
+  #authLeftPanel { padding: 32px 40px; }
+  #authLeftPanel h2 { font-size: 24px; margin-bottom: 8px; }
+  #authLeftPanel .sub { margin-bottom: 20px; }
+  .auth-feature { margin-bottom: 12px; }
+</style>
+<style>
+  #authPageWrap:not(.signin-mode) #authScreen {
+    justify-content: flex-start !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-top: 20px;
+  }
+  #authPageWrap:not(.signin-mode) { align-items: stretch; min-height: 100vh; }
+
+  .text-input { padding: 7px 12px; margin-bottom: 6px; font-size: 13px; }
+  label.field-label { margin-bottom: 1px; font-size: 10px; }
+  #authScreen h1 { font-size: 19px; margin-bottom: 2px; }
+  #signupSubtitle { margin: -4px 0 8px !important; font-size: 12px !important; }
+  #termsRow { margin-bottom: 6px !important; }
+  .submit-btn { padding: 9px 0; }
+</style>
+<script>
+  const rememberRowEl = document.getElementById("rememberMeInput") ? document.getElementById("rememberMeInput").closest("div") : null;
+  const signupFieldsForRemember = document.getElementById("signupFields");
+  function syncRememberVisibility() {
+    if (!rememberRowEl) return;
+    const isSignup = signupFieldsForRemember.style.display !== "none";
+    rememberRowEl.style.display = isSignup ? "none" : "flex";
+  }
+  if (signupFieldsForRemember) {
+    new MutationObserver(syncRememberVisibility).observe(signupFieldsForRemember, { attributes: true, attributeFilter: ["style"] });
+    syncRememberVisibility();
+  }
+</script>
+<script>
+  document.querySelectorAll(''svg path[d*="M12 21s-7-4.35"]'').forEach((path) => {
+    const svg = path.closest("svg");
+    if (!svg) return;
+    const size = svg.getAttribute("width") || "26";
+    const img = document.createElement("img");
+    img.src = "logo.png";
+    img.alt = "Clinic Ledger";
+    img.style.width = size + "px";
+    img.style.height = size + "px";
+    img.style.objectFit = "contain";
+    svg.replaceWith(img);
+  });
+
+  const brandEl = document.querySelector(".brand");
+  if (brandEl && !brandEl.querySelector("img")) {
+    const img = document.createElement("img");
+    img.src = "logo.png";
+    img.alt = "Clinic Ledger";
+    img.style.cssText = "width:22px; height:22px; object-fit:contain; flex-shrink:0";
+    brandEl.insertAdjacentElement("afterbegin", img);
+  }
+</script>
+<style>
+  #authLeftPanel { flex: 0 0 32% !important; width: 32% !important; }
+  #authScreen {
+    flex: 1 1 68% !important;
+    width: 68% !important;
+    max-width: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
+  }
+  #signInPanel, #resetPanel {
+    width: 100%;
+    max-width: 480px;
+  }
+  .signin-logo { margin-bottom: 14px !important; }
+  #authScreen h1 { margin-bottom: 6px !important; }
+  #authScreen .eyebrow { margin-bottom: 10px !important; }
+  .text-input { margin-bottom: 12px !important; padding: 11px 14px !important; font-size: 15px !important; }
+  .submit-btn { padding: 12px 0 !important; margin-top: 4px; }
+  .signin-divider { margin: 16px 0 !important; }
+  .security-footer { margin-top: 18px !important; }
+  #forgotPasswordRow { margin-top: 12px !important; }
+</style>
+<style>
+  #authScreen { background: linear-gradient(180deg, #FAFBFD 0%, #F2F4F8 100%); }
+  .field-error { color: #9C3B2E; font-size: 12px; margin-top: -8px; margin-bottom: 10px; display: none; }
+</style>
+<script>
+  const emailFormEl = document.getElementById("emailForm");
+  emailFormEl.setAttribute("novalidate", "novalidate");
+
+  document.querySelectorAll("label.field-label").forEach((label) => {
+    const t = label.textContent.trim();
+    if (t === "Email" || t === "Password") {
+      label.innerHTML = t + '' <span style="color:#9C3B2E">*</span>'';
+    }
+  });
+
+  function addFieldError(inputId) {
+    const input = document.getElementById(inputId);
+    const err = document.createElement("div");
+    err.id = inputId + "Err";
+    err.className = "field-error";
+    input.insertAdjacentElement("afterend", err);
+    return err;
+  }
+  const emailErrEl = addFieldError("emailInput");
+  const passwordErrEl = addFieldError("passwordInput");
+
+  function isValidEmailFormat(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  document.getElementById("emailSubmitBtn").addEventListener("click", (e) => {
+    const isSignup = document.getElementById("signupFields").style.display !== "none";
+    if (isSignup) return;
+
+    emailErrEl.style.display = "none";
+    passwordErrEl.style.display = "none";
+    const email = document.getElementById("emailInput").value.trim();
+    const password = document.getElementById("passwordInput").value;
+    let hasError = false;
+
+    if (!email) {
+      emailErrEl.textContent = "Email is required";
+      emailErrEl.style.display = "block";
+      hasError = true;
+    } else if (!isValidEmailFormat(email)) {
+      emailErrEl.textContent = "Please enter a valid email address";
+      emailErrEl.style.display = "block";
+      hasError = true;
+    }
+
+    if (!password) {
+      passwordErrEl.textContent = "Password is required";
+      passwordErrEl.style.display = "block";
+      hasError = true;
+    }
+
+    if (hasError) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+</script>
+<style>
+  .field-error { color: #9C3B2E; font-size: 12px; margin-top: -8px; margin-bottom: 10px; display: none; }
+  .policy-link { color: #2E5BFF; text-decoration: underline; cursor: pointer; }
+  .policy-modal-overlay { position: fixed; inset: 0; background: rgba(16,27,51,0.5); z-index: 50; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .policy-modal-overlay.open { display: flex; }
+  .policy-modal { background: #fff; border-radius: 12px; padding: 28px; max-width: 560px; width: 100%; max-height: 80vh; overflow-y: auto; }
+  .policy-modal h2 { font-family: ''Fraunces'', serif; margin-top: 0; }
+  .policy-modal p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .policy-modal-close { margin-top: 16px; background: var(--ink); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-weight: 600; }
+</style>
+<script>
+  ["firstNameInput", "lastNameInput", "cityInput", "mobileInput", "confirmPasswordInput"].forEach((id) => {
+    const input = document.getElementById(id);
+    const label = input.closest("div") ? input.closest("div").querySelector("label.field-label") : input.previousElementSibling;
+    if (label && !label.querySelector("span")) {
+      label.innerHTML = label.textContent.trim() + '' <span style="color:#9C3B2E">*</span>'';
+    }
+  });
+
+  function addFieldError2(inputId) {
+    const input = document.getElementById(inputId);
+    let err = document.getElementById(inputId + "Err");
+    if (err) return err;
+    err = document.createElement("div");
+    err.id = inputId + "Err";
+    err.className = "field-error";
+    input.insertAdjacentElement("afterend", err);
+    return err;
+  }
+  const errFirst = addFieldError2("firstNameInput");
+  const errLast = addFieldError2("lastNameInput");
+  const errCity = addFieldError2("cityInput");
+  const errMobile = addFieldError2("mobileInput");
+  const errConfirm = addFieldError2("confirmPasswordInput");
+  const termsErr = document.createElement("div");
+  termsErr.className = "field-error";
+  document.getElementById("termsRow").insertAdjacentElement("afterend", termsErr);
+
+  function showErr(el, msg) { el.textContent = msg; el.style.display = "block"; }
+  function hideErr(el) { el.style.display = "none"; }
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="policy-modal-overlay" id="policyModalOverlay">
+      <div class="policy-modal">
+        <h2 id="policyModalTitle">Terms & Conditions</h2>
+        <div id="policyModalBody"></div>
+        <button class="policy-modal-close" id="policyModalClose">Close</button>
+      </div>
+    </div>
+  `);
+  const policyContent = {
+    terms: `<p>By creating an account, you agree to use Clinic Ledger to record and manage your clinic''s own payment and patient data responsibly and lawfully. You are responsible for the accuracy of data you enter and for keeping your account credentials secure. Clinic Ledger is provided during an initial free trial period, after which continued use requires an active subscription. This is placeholder policy text — replace with your clinic''s actual reviewed terms before real commercial use.</p>`,
+    privacy: `<p>Clinic Ledger stores the information you enter (patient payment records, profile details) in a private database accessible only to your account. We do not sell your data. Passwords are handled securely by Firebase Authentication and are never stored in plain text. This is placeholder policy text — replace with your clinic''s actual reviewed privacy policy, especially regarding patient health/financial data handling, before real commercial use.</p>`,
+  };
+  function openPolicyModal(kind) {
+    document.getElementById("policyModalTitle").textContent = kind === "terms" ? "Terms & Conditions" : "Privacy Policy";
+    document.getElementById("policyModalBody").innerHTML = policyContent[kind];
+    document.getElementById("policyModalOverlay").classList.add("open");
+  }
+  document.getElementById("policyModalClose").addEventListener("click", () => {
+    document.getElementById("policyModalOverlay").classList.remove("open");
+  });
+  document.getElementById("policyModalOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "policyModalOverlay") document.getElementById("policyModalOverlay").classList.remove("open");
+  });
+
+  const termsLabel = document.querySelector(''label[for="agreeTermsInput"]'');
+  if (termsLabel) {
+    termsLabel.innerHTML = ''I agree to the <a class="policy-link" id="termsLinkBtn">Terms &amp; Conditions</a> and <a class="policy-link" id="privacyLinkBtn">Privacy Policy</a>'';
+    document.getElementById("termsLinkBtn").addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); openPolicyModal("terms"); });
+    document.getElementById("privacyLinkBtn").addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); openPolicyModal("privacy"); });
+  }
+
+  document.getElementById("emailSubmitBtn").addEventListener("click", (e) => {
+    const isSignup = document.getElementById("signupFields").style.display !== "none";
+    if (!isSignup) return;
+
+    [errFirst, errLast, errCity, errMobile, errConfirm, termsErr].forEach(hideErr);
+    let hasError = false;
+
+    const firstName = document.getElementById("firstNameInput").value.trim();
+    const lastName = document.getElementById("lastNameInput").value.trim();
+    const city = document.getElementById("cityInput").value.trim();
+    const mobile = document.getElementById("mobileInput").value.trim();
+    const password = document.getElementById("passwordInput").value;
+    const confirmPassword = document.getElementById("confirmPasswordInput").value;
+
+    if (!firstName) { showErr(errFirst, "First name is required"); hasError = true; }
+    if (!lastName) { showErr(errLast, "Last name is required"); hasError = true; }
+    if (!city) { showErr(errCity, "City is required"); hasError = true; }
+    if (!mobile) { showErr(errMobile, "Mobile number is required"); hasError = true; }
+    else if (!/^\+?[0-9]{7,15}$/.test(mobile)) { showErr(errMobile, "Please enter a valid mobile number"); hasError = true; }
+
+    const emailValEl = document.getElementById("emailInput");
+    const emailErrShared = document.getElementById("emailInputErr");
+    const pwErrShared = document.getElementById("passwordInputErr");
+    if (emailErrShared) emailErrShared.style.display = "none";
+    if (pwErrShared) pwErrShared.style.display = "none";
+    const emailVal = emailValEl.value.trim();
+    if (!emailVal) { if (emailErrShared) { emailErrShared.textContent = "Email is required"; emailErrShared.style.display = "block"; } hasError = true; }
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) { if (emailErrShared) { emailErrShared.textContent = "Please enter a valid email address"; emailErrShared.style.display = "block"; } hasError = true; }
+    if (!password) { if (pwErrShared) { pwErrShared.textContent = "Password is required"; pwErrShared.style.display = "block"; } hasError = true; }
+    else if (password.length < 6) { if (pwErrShared) { pwErrShared.textContent = "Password must contain at least 6 characters"; pwErrShared.style.display = "block"; } hasError = true; }
+
+    if (confirmPassword && password !== confirmPassword) { showErr(errConfirm, "Passwords do not match"); hasError = true; }
+    else if (!confirmPassword) { showErr(errConfirm, "Please confirm your password"); hasError = true; }
+    if (!document.getElementById("agreeTermsInput").checked) {
+      showErr(termsErr, "You must accept the Terms & Conditions and Privacy Policy to create an account.");
+      hasError = true;
+    }
+
+    if (hasError) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+</script>
+
+
+
+
+'@
+[System.IO.File]::WriteAllText((Join-Path (Get-Location) $path), $content)
+Write-Output "index.html rewritten (15-day trial, referral-code resolution, fixed signup). Run: firebase deploy --only hosting"
