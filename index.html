@@ -3,11 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Clinic Ledger</title>
+<title>Curevona</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="48x48" href="/assets/icon-48.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-180.png?v=2">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0E1A3A">
 <link rel="canonical" href="https://curevona.world/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Curevona">
-<meta property="og:title" content="Clinic Ledger">
+<meta property="og:title" content="Curevona">
 <meta property="og:url" content="https://curevona.world/">
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
@@ -183,11 +188,20 @@
     #main { padding: 16px; padding-bottom: 90px; }
   }
 </style>
-</head>
+<style id="brand-fix">
+#mobileTopbar .mt-logocard{background:#fff;border-radius:8px;padding:5px 10px;display:flex;align-items:center;flex-shrink:0}
+#mobileTopbar .mt-logo{width:auto !important;height:auto !important;max-width:120px;max-height:28px;object-fit:contain}
+@media (max-width:359px){#mobileTopbar .mt-logo{max-width:96px}}
+.signin-logo img{max-width:100%;height:auto}
+.brand .brand-logocard{display:inline-block;background:#fff;border-radius:10px;padding:7px 11px;line-height:0}
+.brand .brand-logocard img{display:block;width:132px !important;max-width:100% !important;height:auto !important;object-fit:contain}
+@media (max-width:359px){.brand .brand-logocard img{width:110px !important}}
+#resetPanel{margin-top:14px}
+</style></head>
 <body>
 
 <div id="authScreen">
-  <div class="eyebrow">Clinic Ledger</div>
+  
   <h1 id="authHeading">Sign in to your ledger</h1>
 
   <div id="signInPanel">
@@ -238,7 +252,7 @@
   </div>
 
   <div id="resetPanel" style="display:none">
-    <p style="font-size:14px; color:var(--muted); text-align:center; margin-top:-10px">Enter your registered email address and we'll send you a link to reset your password.</p>
+    <p style="font-size:14px; color:var(--muted); text-align:center; margin-top:-10px">Enter your email address and we'll send you a secure link to create a new password.</p>
     <form id="resetForm">
       <label class="field-label">Email</label>
       <input class="text-input" type="email" id="resetEmailInput" placeholder="you@example.com" required />
@@ -251,7 +265,7 @@
 
 <div id="appShell" style="display:none">
   <div id="sidebar">
-    <div class="brand"><img src="logo.png" alt="Clinic Ledger" style="width:22px;height:22px;object-fit:contain;flex-shrink:0"> Clinic Ledger</div>
+    <div class="brand"><span class="brand-logocard"><img src="assets/curevona-logo.png?v=2" alt="Curevona"></span></div>
     <div class="user-card">
       <div class="avatar" id="avatarInitials">?</div>
       <div style="min-width:0">
@@ -1136,7 +1150,7 @@
   document.getElementById("forgotPasswordLink").addEventListener("click", () => {
     document.getElementById("signInPanel").style.display = "none";
     document.getElementById("resetPanel").style.display = "block";
-    document.getElementById("authHeading").textContent = "Forgot password?";
+    document.getElementById("authHeading").textContent = "Reset your password";
   });
   document.getElementById("backToSignInLink").addEventListener("click", () => {
     document.getElementById("resetPanel").style.display = "none";
@@ -1147,14 +1161,26 @@
   document.getElementById("resetForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!auth) return;
+    const btn = document.querySelector("#resetForm button[type=submit]") || document.querySelector("#resetForm button");
     const email = document.getElementById("resetEmailInput").value.trim();
+    const okMsg = "Reset link sent. If an account exists for this email address, you'll receive a secure password reset link shortly. Please check your inbox and spam folder.";
+    if (!email) { setAuthMsg("resetMsg", "Please enter your email address.", "error"); return; }
+    const idleText = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = "Sending..."; }
+    setAuthMsg("resetMsg", "", "");
     try {
-      await sendPasswordResetEmail(auth, email, { url: window.location.origin + "/reset-password.html" });
-      console.log("[Clinic Ledger] Password reset request submitted successfully to Firebase for:", email);
+      await sendPasswordResetEmail(auth, email, { url: "https://curevona.world/" });
+      setAuthMsg("resetMsg", okMsg, "ok");
     } catch (err) {
-      console.error("[Clinic Ledger] Password reset request FAILED:", err.code, err.message);
+      console.error("[Clinic Ledger] Password reset failed:", err.code);
+      if (err.code === "auth/user-not-found") setAuthMsg("resetMsg", okMsg, "ok");
+      else if (err.code === "auth/invalid-email") setAuthMsg("resetMsg", "Please enter a valid email address.", "error");
+      else if (err.code === "auth/too-many-requests") setAuthMsg("resetMsg", "Too many attempts. Please wait a few minutes and try again.", "error");
+      else if (err.code === "auth/network-request-failed") setAuthMsg("resetMsg", "Network error. Check your connection and try again.", "error");
+      else setAuthMsg("resetMsg", "We could not send the reset email right now. Please try again later.", "error");
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = idleText; }
     }
-    setAuthMsg("resetMsg", "If the email is registered, you'll receive a password reset link shortly.", "ok");
   });
 
   render();
@@ -1218,7 +1244,7 @@
   var bar = document.createElement('div');
   bar.id = 'mobileTopbar';
   bar.innerHTML = '<button type="button" class="mt-menu" aria-label="Open menu" aria-expanded="false">&#9776;</button>' +
-                  '<img class="mt-logo" src="logo.png" alt="">' +
+                  '<span class="mt-logocard"><img class="mt-logo" src="assets/curevona-logo.png?v=2" alt="Curevona"></span>' +
                   '<span class="mt-title">Dashboard</span>';
   var back = document.createElement('div');
   back.id = 'navBackdrop';
@@ -2901,11 +2927,11 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
   wrap.insertAdjacentHTML("afterbegin", `
     <div id="authLeftPanel">
       <div class="logo">
-        <img src="logo.png" alt="Clinic Ledger" style="width:26px;height:26px;object-fit:contain">
-        <span>CLINIC LEDGER</span>
+        <span style="display:block;background:#fff;border-radius:14px;padding:14px 18px"><img src="assets/curevona-logo.png?v=2" alt="Curevona" style="display:block;width:min(240px,60vw);height:auto;object-fit:contain"></span>
+        
       </div>
       <h2>Smart way to<br/>manage your clinic</h2>
-      <div class="sub">Track payments, manage patients, and grow your practice with Clinic Ledger.</div>
+      <div class="sub">Track payments, manage patients, and grow your practice with Curevona.</div>
       <div class="auth-feature">
         <div class="fi">🎁</div>
         <div><div class="ft">15 Days Free Trial</div><div class="fd">Try all features absolutely free</div></div>
@@ -2926,7 +2952,7 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
   const eyebrow = document.querySelector("#authScreen .eyebrow");
   function refreshHeading() {
     const inReset = document.getElementById("resetPanel").style.display !== "none";
-    if (inReset) { heading.textContent = "Forgot Password?"; return; }
+    if (inReset) { heading.textContent = "Reset your password"; return; }
     const signupFieldsVisible = document.getElementById("signupFields").style.display !== "none";
     heading.textContent = signupFieldsVisible ? "Create Your Account" : "Welcome Back!";
   }
@@ -3185,7 +3211,7 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
 
   const signinLogo = document.createElement("div");
   signinLogo.className = "signin-logo";
-  signinLogo.innerHTML = `<img src="logo.png" alt="Clinic Ledger" style="width:48px;height:48px;object-fit:contain">`;
+  signinLogo.innerHTML = `<img src="assets/curevona-logo.png?v=2" alt="Curevona" style="width:min(220px,70%);height:auto;object-fit:contain">`;
   document.getElementById("authHeading").insertAdjacentElement("beforebegin", signinLogo);
 
   const securityFooter = document.createElement("div");
@@ -3199,7 +3225,7 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
   function syncSigninLayout() {
     const isSignup = signupFieldsEl2.style.display !== "none";
     authWrapEl2.classList.toggle("signin-mode", !isSignup);
-    signinLogo.style.display = isSignup ? "none" : "flex";
+    signinLogo.style.display = "flex";
     securityFooter.style.display = isSignup ? "none" : "flex";
     dividerEl.style.display = isSignup ? "none" : "flex";
     if (isSignup) {
@@ -3424,8 +3450,8 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
     </div>
   `);
   const policyContent = {
-    terms: `<p>By creating an account, you agree to use Clinic Ledger to record and manage your clinic's own payment and patient data responsibly and lawfully. You are responsible for the accuracy of data you enter and for keeping your account credentials secure. Clinic Ledger is provided during an initial free trial period, after which continued use requires an active subscription. This is placeholder policy text — replace with your clinic's actual reviewed terms before real commercial use.</p>`,
-    privacy: `<p>Clinic Ledger stores the information you enter (patient payment records, profile details) in a private database accessible only to your account. We do not sell your data. Passwords are handled securely by Firebase Authentication and are never stored in plain text. This is placeholder policy text — replace with your clinic's actual reviewed privacy policy, especially regarding patient health/financial data handling, before real commercial use.</p>`,
+    terms: `<p>By creating an account, you agree to use Curevona to record and manage your clinic's own payment and patient data responsibly and lawfully. You are responsible for the accuracy of data you enter and for keeping your account credentials secure. Curevona is provided during an initial free trial period, after which continued use requires an active subscription. This is placeholder policy text — replace with your clinic's actual reviewed terms before real commercial use.</p>`,
+    privacy: `<p>Curevona stores the information you enter (patient payment records, profile details) in a private database accessible only to your account. We do not sell your data. Passwords are handled securely by Firebase Authentication and are never stored in plain text. This is placeholder policy text — replace with your clinic's actual reviewed privacy policy, especially regarding patient health/financial data handling, before real commercial use.</p>`,
   };
   function openPolicyModal(kind) {
     document.getElementById("policyModalTitle").textContent = kind === "terms" ? "Terms & Conditions" : "Privacy Policy";
