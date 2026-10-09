@@ -2,134 +2,212 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Contact Us â€” Curevona</title>
-<style>
-    :root {
-      --navy: #0d1b3d;
-      --navy-light: #16285a;
-      --blue: #2E5BFF;
-      --text: #1a1a2e;
-      --muted: #5a6072;
-      --bg: #f7f8fb;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-    }
-    header {
-      background: var(--navy);
-      padding: 18px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    header .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    header .brand img {
-      height: 30px;
-      width: auto;
-    }
-    header .brand span {
-      color: #fff;
-      font-weight: 700;
-      font-size: 1.1rem;
-      font-family: Georgia, ''Times New Roman'', serif;
-    }
-    header a.back {
-      color: #cfd6f5;
-      text-decoration: none;
-      font-size: 0.9rem;
-    }
-    header a.back:hover { color: #fff; }
-    main {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 48px 24px 80px;
-    }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 4px;
-      color: var(--navy);
-    }
-    .updated {
-      color: var(--muted);
-      font-size: 0.85rem;
-      margin-bottom: 32px;
-    }
-    h2 {
-      font-size: 1.15rem;
-      color: var(--navy);
-      margin-top: 32px;
-      margin-bottom: 8px;
-    }
-    p, li { color: var(--text); font-size: 0.97rem; }
-    ul { padding-left: 20px; }
-    .placeholder {
-      background: #fff3cd;
-      border: 1px solid #f0c040;
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-style: normal;
-    }
-    footer {
-      text-align: center;
-      padding: 24px;
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-    footer a { color: var(--blue); text-decoration: none; margin: 0 8px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contact Us — Curevona</title>
+<meta name="description" content="Contact Curevona with questions, ideas or feedback.">
+<link rel="canonical" href="https://curevona.world/contact.html">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png?v=2">
 <link rel="icon" type="image/png" sizes="48x48" href="/assets/icon-48.png?v=2">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/icon-180.png?v=2">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0E1A3A">
+<style>
+:root{--navy:#0E1A3A;--ink:#1a2340;--muted:#5a6580;--blue:#2c5fff;--blue-d:#1f47d1;--line:#e3e8f2;--soft:#f5f7fb;
+  --err:#b42318;--errbg:#fef3f2;--ok:#067647;--okbg:#ecfdf3;
+  --serif:Georgia,"Times New Roman",serif;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--soft);line-height:1.6;
+  padding-left:env(safe-area-inset-left,0);padding-right:env(safe-area-inset-right,0)}
+img{max-width:100%;height:auto}
+a{color:var(--blue)}
+.wrap{width:100%;max-width:760px;margin:0 auto;padding:0 20px}
+header.site{background:#fff;border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0)}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:68px;max-width:1160px;margin:0 auto;padding:0 20px}
+.bar img{display:block;width:150px;height:auto}
+.back{font-size:.95rem;font-weight:600;text-decoration:none;color:var(--navy);padding:10px 4px}
+.back:hover{text-decoration:underline}
+main{padding:clamp(28px,6vw,64px) 0}
+h1{margin:0 0 12px;font-family:var(--serif);color:var(--navy);font-size:clamp(1.8rem,5vw,2.4rem);line-height:1.2}
+.intro{color:var(--muted);margin:0 0 28px}
+.info{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-bottom:28px}
+.info div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.info h2{margin:0 0 6px;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:var(--sans)}
+.info p{margin:0;overflow-wrap:anywhere}
+.info a{font-weight:700;color:var(--navy);text-decoration:none}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:clamp(20px,4vw,32px)}
+.card h2{margin:0 0 18px;font-family:var(--serif);color:var(--navy);font-size:1.4rem}
+.field{margin-bottom:18px}
+label{display:block;font-weight:700;font-size:.92rem;margin-bottom:6px}
+input,textarea{width:100%;min-height:48px;padding:12px 14px;font:inherit;color:var(--ink);background:#fff;border:1.5px solid #cfd6e4;border-radius:10px}
+textarea{min-height:140px;resize:vertical}
+input:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(44,95,255,.15)}
+.invalid{border-color:var(--err)}
+.msg{display:none;margin-top:6px;font-size:.88rem;color:var(--err)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 28px;border:0;border-radius:10px;background:var(--blue);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.btn:hover{background:var(--blue-d)}
+.btn:disabled{opacity:.65;cursor:not-allowed}
+.status{display:none;margin-top:18px;padding:14px 16px;border-radius:10px;font-weight:600}
+.status.ok{display:block;background:var(--okbg);color:var(--ok)}
+.status.error{display:block;background:var(--errbg);color:var(--err)}
+footer.site{padding:28px 0 calc(28px + env(safe-area-inset-bottom,0));text-align:center;font-size:.9rem;color:var(--muted)}
+footer.site nav{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;margin-bottom:10px}
+footer.site a{color:var(--muted);text-decoration:none}
+footer.site a:hover{text-decoration:underline}
+@media (max-width:600px){.info{grid-template-columns:1fr}.btn{width:100%}.bar img{width:124px}}
+</style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <img src="assets/curevona-logo.png?v=2" alt="Curevona" style="width:170px;max-width:60vw;height:auto;object-fit:contain">
-    
+<header class="site">
+  <div class="bar">
+    <a href="/" aria-label="Curevona home"><img src="/assets/curevona-logo.png?v=2" alt="Curevona" width="150" height="41"></a>
+    <a class="back" href="/">&larr; Back to Curevona</a>
   </div>
-  <a class="back" href="index.html">&larr; Back to Curevona</a>
 </header>
+
 <main>
-<h1>Contact Us</h1>
-<div class="updated">Last updated: 17 September 2026</div>
+  <div class="wrap">
+    <h1>Contact Us</h1>
+    <p class="intro">We're here to help. If you have a question, idea, or feedback about Curevona, please contact us using the form below.</p>
 
-<p>We''re happy to help with any questions about your account, subscription, or the Service in general.</p>
+    <div class="info">
+      <div>
+        <h2>Address</h2>
+        <p>CH-1, Joshi Rd, Hira Nagar, Sector CH, Sukhliya, Indore, Madhya Pradesh 452010</p>
+      </div>
+      <div>
+        <h2>Support Phone</h2>
+        <p><a href="tel:+917042748125">+917042748125</a></p>
+      </div>
+    </div>
 
-<h2>Business Name</h2>
-<p><span class="placeholder">[CUREVONA]</span></p>
+    <form class="card" id="contactForm" novalidate>
+      <h2>Contact Us</h2>
 
-<h2>Support Email</h2>
-<p><span class="placeholder">[gaurav.sen12@outlook.com]</span></p>
+      <div class="field">
+        <label for="cName">Name *</label>
+        <input id="cName" name="name" type="text" autocomplete="name" maxlength="100" required>
+        <div class="msg" id="eName">Please enter your name.</div>
+      </div>
 
-<h2>Support Phone</h2>
-<p><span class="placeholder">[+917042748125]</span></p>
+      <div class="field">
+        <label for="cPhone">Contact Number *</label>
+        <input id="cPhone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" required>
+        <div class="msg" id="ePhone">Please enter a valid contact number.</div>
+      </div>
 
-<h2>Registered Address</h2>
-<p><span class="placeholder">[New Vijay Nager, Indore, MP, 453555]</span></p>
+      <div class="field">
+        <label for="cEmail">Email *</label>
+        <input id="cEmail" name="email" type="email" autocomplete="email" maxlength="150" required>
+        <div class="msg" id="eEmail">Please enter a valid email address.</div>
+      </div>
 
-<h2>Response Time</h2>
-<p>We aim to respond to all queries within <span class="placeholder">[e.g., 2 business days]</span>.</p>
+      <div class="field">
+        <label for="cMessage">Questions, Ideas or Feedback *</label>
+        <textarea id="cMessage" name="message" maxlength="2000" required></textarea>
+        <div class="msg" id="eMessage">Please enter your message.</div>
+      </div>
 
+      <div class="hp" aria-hidden="true"><label for="cWebsite">Leave this field empty</label><input id="cWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+
+      <button class="btn" type="submit" id="submitBtn">Submit</button>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </form>
+  </div>
 </main>
-<footer>
-  <a href="terms.html">Terms &amp; Conditions</a>|
-  <a href="privacy.html">Privacy Policy</a>|
-  <a href="shipping.html">Shipping Policy</a>|
-  <a href="refunds.html">Cancellation &amp; Refunds</a>|
-  <a href="contact.html">Contact Us</a>
-  <div style="margin-top:8px;">&copy; 2026 Curevona. All rights reserved.</div>
+
+<footer class="site">
+  <div class="wrap">
+    <nav aria-label="Footer">
+      <a href="/terms.html">Terms &amp; Conditions</a>
+      <a href="/privacy.html">Privacy Policy</a>
+      <a href="/shipping.html">Shipping Policy</a>
+      <a href="/refunds.html">Cancellation &amp; Refunds</a>
+    </nav>
+    <div>&copy; 2026 Curevona. All rights reserved.</div>
+  </div>
 </footer>
+
+<script>
+(function () {
+  var ENDPOINT = "https://clinic-ledger-worker.sengaurav323-clinic.workers.dev/contact";
+  var form = document.getElementById("contactForm");
+  var btn = document.getElementById("submitBtn");
+  var status = document.getElementById("status");
+  var F = {
+    name: document.getElementById("cName"), phone: document.getElementById("cPhone"),
+    email: document.getElementById("cEmail"), message: document.getElementById("cMessage"),
+    website: document.getElementById("cWebsite")
+  };
+  var E = { name: "eName", phone: "ePhone", email: "eEmail", message: "eMessage" };
+
+  function normalizePhone(v) {
+    v = String(v || "").trim();
+    var plus = v.charAt(0) === "+";
+    var digits = v.replace(/\D/g, "");
+    return (plus ? "+" : "") + digits;
+  }
+  function phoneOk(p) {
+    var digits = p.replace(/\D/g, "");
+    if (p.indexOf("+91") === 0) return digits.length === 12 && /^91[6-9]/.test(digits);
+    return digits.length >= 10 && digits.length <= 15;
+  }
+  function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) && v.length <= 150; }
+
+  function show(key, bad) {
+    document.getElementById(E[key]).style.display = bad ? "block" : "none";
+    F[key].classList.toggle("invalid", bad);
+    F[key].setAttribute("aria-invalid", bad ? "true" : "false");
+    return !bad;
+  }
+  function validate() {
+    var okName = show("name", F.name.value.trim().length < 2);
+    var okPhone = show("phone", !phoneOk(normalizePhone(F.phone.value)));
+    var okEmail = show("email", !emailOk(F.email.value.trim()));
+    var okMsg = show("message", F.message.value.trim().length < 5);
+    var first = !okName ? F.name : !okPhone ? F.phone : !okEmail ? F.email : !okMsg ? F.message : null;
+    if (first) first.focus();
+    return !first;
+  }
+  function setStatus(kind, text) {
+    status.className = "status" + (kind ? " " + kind : "");
+    status.textContent = text || "";
+  }
+  ["name", "phone", "email", "message"].forEach(function (k) {
+    F[k].addEventListener("input", function () { if (F[k].classList.contains("invalid")) validate(); });
+  });
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    setStatus("", "");
+    if (!validate()) return;
+    var payload = {
+      name: F.name.value.trim(),
+      phone: normalizePhone(F.phone.value),
+      email: F.email.value.trim(),
+      message: F.message.value.trim(),
+      website: F.website.value
+    };
+    btn.disabled = true; var idle = btn.textContent; btn.textContent = "Submitting...";
+    var controller = ("AbortController" in window) ? new AbortController() : null;
+    var timer = setTimeout(function () { if (controller) controller.abort(); }, 20000);
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller ? controller.signal : undefined
+    }).then(function (res) {
+      if (!res.ok) throw new Error("status " + res.status);
+      form.reset();
+      setStatus("ok", "Thank you! Your message has been submitted successfully.");
+    }).catch(function () {
+      setStatus("error", "We couldn't submit your message right now. Please try again.");
+    }).then(function () {
+      clearTimeout(timer);
+      btn.disabled = false; btn.textContent = idle;
+    });
+  });
+})();
+</script>
 </body>
 </html>
