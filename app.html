@@ -197,7 +197,7 @@
 .brand .brand-logocard img{display:block;width:132px !important;max-width:100% !important;height:auto !important;object-fit:contain}
 @media (max-width:359px){.brand .brand-logocard img{width:110px !important}}
 #resetPanel{margin-top:14px}
-</style></head>
+</style><script id="local-date-fix">window.__localISO=function(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);};</script></head>
 <body>
 
 <div id="authScreen">
@@ -429,7 +429,7 @@
   const FEE_ORDER = FEE_TYPES.map((f) => f.key);
   const feeMeta = (key) => FEE_TYPES.find((f) => f.key === key) || FEE_TYPES[3];
 
-  const todayISO = () => new Date().toISOString().slice(0, 10);
+  const todayISO = () => __localISO(new Date());
   const fmtMoney = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
   const fmtDateShort = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
   const fmtDateLong = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -439,13 +439,13 @@
     const day = (d.getDay() + 6) % 7;
     const start = new Date(d); start.setDate(d.getDate() - day);
     const end = new Date(start); end.setDate(start.getDate() + 6);
-    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+    return { start: __localISO(start), end: __localISO(end) };
   }
   function monthRange(iso) {
     const d = new Date(iso + "T00:00:00");
     const start = new Date(d.getFullYear(), d.getMonth(), 1);
     const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+    return { start: __localISO(start), end: __localISO(end) };
   }
   const inRange = (dateStr, start, end) => dateStr >= start && dateStr <= end;
   const comboKey = (keys) => FEE_ORDER.filter((k) => keys.includes(k)).join("+");
@@ -636,7 +636,7 @@
     if (period === "day") d.setDate(d.getDate() + dir);
     else if (period === "week") d.setDate(d.getDate() + dir * 7);
     else d.setMonth(d.getMonth() + dir);
-    anchorDate = d.toISOString().slice(0, 10);
+    anchorDate = __localISO(d);
     render();
   }
 
@@ -741,7 +741,7 @@
   document.getElementById("exportBtn").disabled = true;
 
   function render() {
-    document.getElementById("exportBtn").disabled = entries.length === 0;
+    document.getElementById("exportBtn").disabled = entries.length === 0; try { window.__rdData = { entries: entries, period: period, anchorDate: anchorDate, range: currentRange(), entryTotal: entryTotal, FEE_TYPES: FEE_TYPES, fmtMoney: fmtMoney, inRange: inRange }; setTimeout(function () { window.dispatchEvent(new Event("rd-render")); }, 0); } catch (e) { console.warn("rd hook", e); }
     const range = currentRange();
     document.getElementById("rangeLabel").textContent = rangeLabelText(range);
 
@@ -2179,7 +2179,632 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
   strip();
   new MutationObserver(strip).observe(document.body, { childList: true, subtree: true });
 })();
-</script></body>
+</script><style id="redesign-stage1">
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+#appShell{--rd-navy:#0B1B3F;--rd-navy2:#0A1733;--rd-blue:#1F6BFF;--rd-bg:#EEF3FB;--rd-ink:#0F1E3D;--rd-muted:#64748B;--rd-line:#E3EAF5;--rd-shadow:0 1px 2px rgba(15,30,61,.04),0 8px 24px rgba(15,30,61,.07);
+--paper:#EEF3FB;--ink:#0F1E3D;--line:#E3EAF5;--muted:#64748B;--sidebar:#0B1B3F;--sidebar-hover:#16295A;--accent:#1F6BFF;
+background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif;color:var(--rd-ink)}
+#appShell button:focus-visible,#appShell input:focus-visible,#appShell select:focus-visible{outline:2px solid var(--rd-blue);outline-offset:2px}
+/* ---- sidebar ---- */
+#appShell #sidebar{background:linear-gradient(180deg,var(--rd-navy) 0%,var(--rd-navy2) 100%)}
+@media(min-width:861px){#appShell #sidebar{width:252px;padding:18px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;align-self:flex-start}
+#appShell .brand .brand-logocard{display:block;width:100%;border-radius:14px;padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#appShell .brand .brand-logocard img{margin:0 auto}
+#appShell .brand{padding:0 0 18px}}
+@media(min-width:861px) and (max-width:1100px){#appShell #sidebar{width:228px}}
+#appShell .user-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px}
+#appShell .avatar{background:linear-gradient(135deg,#3B82F6,#1F6BFF);box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+#appShell .user-card-role{color:#93A4C6}
+#appShell .nav-item{gap:12px;padding:11px 12px;border-radius:12px;font-size:14px;font-weight:500;color:#B6C3DD;margin-bottom:4px;transition:background .15s,color .15s,box-shadow .15s}
+#appShell .nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+#appShell .nav-item.active{background:var(--rd-blue);color:#fff;font-weight:600;box-shadow:0 6px 16px rgba(31,107,255,.35)}
+#appShell .nav-item .dot{width:20px;height:20px;border-radius:0;opacity:1;background:currentColor;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+#appShell .nav-badge-new{background:#F5B83D;color:#3A2A00;font-weight:700;font-size:10px;padding:2px 7px}
+#appShell .signout-item{border-top:1px solid rgba(255,255,255,.1)}
+#appShell #logoutBtn:hover{background:rgba(255,90,90,.14);color:#FFB4B4}
+#appShell .nav-item[data-view="dashboard"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect width=%277%27 height=%279%27 x=%273%27 y=%273%27 rx=%271%27/%3E%3Crect width=%277%27 height=%275%27 x=%2714%27 y=%273%27 rx=%271%27/%3E%3Crect width=%277%27 height=%279%27 x=%2714%27 y=%2712%27 rx=%271%27/%3E%3Crect width=%277%27 height=%275%27 x=%273%27 y=%2716%27 rx=%271%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="placeholder-payments"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect width=%2720%27 height=%2714%27 x=%272%27 y=%275%27 rx=%272%27/%3E%3Cline x1=%272%27 x2=%2722%27 y1=%2710%27 y2=%2710%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="placeholder-patients"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2%27/%3E%3Ccircle cx=%279%27 cy=%277%27 r=%274%27/%3E%3Cpath d=%27M22 21v-2a4 4 0 0 0-3-3.87%27/%3E%3Cpath d=%27M16 3.13a4 4 0 0 1 0 7.75%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="placeholder-reports"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cline x1=%2718%27 x2=%2718%27 y1=%2720%27 y2=%2710%27/%3E%3Cline x1=%2712%27 x2=%2712%27 y1=%2720%27 y2=%274%27/%3E%3Cline x1=%276%27 x2=%276%27 y1=%2720%27 y2=%2714%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="placeholder-expenses"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z%27/%3E%3Cpath d=%27M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8%27/%3E%3Cpath d=%27M12 17.5v-11%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="placeholder-categories"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z%27/%3E%3Cpath d=%27m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65%27/%3E%3Cpath d=%27m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="placeholder-settings"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cline x1=%2721%27 x2=%2714%27 y1=%274%27 y2=%274%27/%3E%3Cline x1=%2710%27 x2=%273%27 y1=%274%27 y2=%274%27/%3E%3Cline x1=%2721%27 x2=%2712%27 y1=%2712%27 y2=%2712%27/%3E%3Cline x1=%278%27 x2=%273%27 y1=%2712%27 y2=%2712%27/%3E%3Cline x1=%2721%27 x2=%2716%27 y1=%2720%27 y2=%2720%27/%3E%3Cline x1=%2712%27 x2=%273%27 y1=%2720%27 y2=%2720%27/%3E%3Cline x1=%2714%27 x2=%2714%27 y1=%272%27 y2=%276%27/%3E%3Cline x1=%278%27 x2=%278%27 y1=%2710%27 y2=%2714%27/%3E%3Cline x1=%2716%27 x2=%2716%27 y1=%2718%27 y2=%2722%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="subscription"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14%27/%3E%3C/svg%3E")}
+#appShell .nav-item[data-view="refer"]{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect x=%273%27 y=%278%27 width=%2718%27 height=%274%27 rx=%271%27/%3E%3Cpath d=%27M12 8v13%27/%3E%3Cpath d=%27M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7%27/%3E%3Cpath d=%27M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5%27/%3E%3C/svg%3E")}
+#appShell #logoutBtn{--ic:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4%27/%3E%3Cpolyline points=%2716 17 21 12 16 7%27/%3E%3Cline x1=%2721%27 x2=%279%27 y1=%2712%27 y2=%2712%27/%3E%3C/svg%3E")}
+
+/* ---- page + header ---- */
+#appShell #main{padding:28px 32px 90px}
+#appShell .page-title{font-family:'Inter',system-ui,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.01em;color:var(--rd-ink)}
+#appShell .page-subtitle{color:var(--rd-muted)}
+#appShell header.dash-header{border-bottom:none;padding-bottom:0;margin-bottom:20px}
+#appShell .segmented{border:none;background:#fff;border-radius:12px;padding:4px;box-shadow:var(--rd-shadow)}
+#appShell .segmented button{padding:8px 22px;border-radius:9px;color:var(--rd-muted);font-weight:600}
+#appShell .segmented button.active{background:var(--rd-blue);color:#fff;box-shadow:0 4px 10px rgba(31,107,255,.3)}
+#appShell .nav-btn{background:#fff;border:none;border-radius:10px;width:34px;height:34px;box-shadow:var(--rd-shadow);color:var(--rd-ink)}
+#appShell .range-label{font-family:'Inter',system-ui,sans-serif;font-weight:600;background:#fff;border-radius:12px;padding:8px 16px;min-width:150px;text-align:center;box-shadow:var(--rd-shadow)}
+#appShell .export-btn{background:#fff;border:1px solid var(--rd-line);border-radius:10px;padding:9px 16px;box-shadow:var(--rd-shadow)}
+/* ---- cards and panels ---- */
+#appShell .card{border:none;border-radius:16px;padding:18px 20px;box-shadow:var(--rd-shadow)}
+#appShell .cards-row .card:nth-child(1){background:linear-gradient(135deg,#E3F7EE 0%,#fff 75%)}
+#appShell .cards-row .card:nth-child(2){background:linear-gradient(135deg,#FFEFE0 0%,#fff 75%)}
+#appShell .cards-row .card:nth-child(3){background:linear-gradient(135deg,#E5EEFF 0%,#fff 75%)}
+#appShell .card-label{font-size:12px;font-weight:600;color:var(--rd-muted);letter-spacing:.04em}
+#appShell .card-value{font-family:'Inter',system-ui,sans-serif;font-weight:700;font-size:28px;font-variant-numeric:tabular-nums;color:var(--rd-ink)}
+#appShell #receivedVal{color:#0E9F6E !important}
+#appShell #pendingVal{color:#EA580C}
+#appShell .panel{border:none;border-radius:16px;padding:20px;box-shadow:var(--rd-shadow)}
+#appShell .panel-title{font-size:15px;font-weight:700;color:var(--rd-ink);letter-spacing:0;text-transform:none}
+#appShell .bar-track{height:8px;background:#E8EEF8}
+#appShell .list-count{color:var(--rd-muted);font-weight:600}
+#appShell .entry-card{border:none;border-radius:14px;box-shadow:var(--rd-shadow)}
+#appShell .entry-total,#appShell .combo-total{font-family:'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-weight:700}
+#appShell .fee-tag{background:#EEF3FB}
+#appShell .empty-state,#appShell .placeholder-panel{background:#fff;border:1px dashed #C9D6EC;border-radius:16px}
+/* ---- buttons, sheet, inputs ---- */
+#appShell .fab{width:58px;height:58px;box-shadow:0 10px 24px rgba(31,107,255,.4)}
+#appShell .sheet{background:#fff;border-radius:20px}
+#appShell .sheet h2{font-family:'Inter',system-ui,sans-serif;font-weight:700}
+#appShell .text-input{border-radius:10px;border-color:var(--rd-line)}
+#appShell .text-input:focus{outline:none;border-color:var(--rd-blue);box-shadow:0 0 0 3px rgba(31,107,255,.15)}
+#appShell .submit-btn{border-radius:10px;box-shadow:0 6px 14px rgba(31,107,255,.3)}
+#appShell .plan-card{border-radius:16px;border-color:var(--rd-line);box-shadow:var(--rd-shadow)}
+#appShell .export-btn:disabled{color:#94A3B8;background:#F4F7FC;box-shadow:none;cursor:default}
+</style>
+<style id="redesign-stage2">
+/* ---- header in one row ---- */
+#appShell header.dash-header{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin-bottom:22px}
+#appShell header.dash-header>div:first-child{display:contents !important}
+#appShell header.dash-header>div:first-child>div:first-child{order:1;flex:1 1 240px;min-width:200px}
+#appShell header.dash-header .page-subtitle{margin:2px 0 0}
+#appShell header.dash-header .range-nav{order:2}
+#appShell header.dash-header .segmented{order:3;margin:0}
+#appShell header.dash-header .rd-import-btn{order:4}
+#appShell header.dash-header #exportBtn{order:5}
+#appShell .export-btn:disabled{color:#94A3B8;background:#F4F7FC;box-shadow:none;cursor:default}
+#appShell .rd-import-btn{--up:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4%27/%3E%3Cpolyline points=%2717 8 12 3 7 8%27/%3E%3Cline x1=%2712%27 x2=%2712%27 y1=%273%27 y2=%2715%27/%3E%3C/svg%3E");display:inline-flex;align-items:center;gap:8px;background:var(--rd-blue);color:#fff;border:none;border-radius:12px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 6px 14px rgba(31,107,255,.3)}
+#appShell .rd-import-btn::before{content:"";width:18px;height:18px;background:#fff;-webkit-mask:var(--up) center/contain no-repeat;mask:var(--up) center/contain no-repeat}
+#appShell #view-dashboard>.imp-bar{display:none !important}
+/* ---- KPI cards with icons ---- */
+#appShell .cards-row .card{display:grid;grid-template-columns:48px 1fr;column-gap:14px;align-items:center}
+#appShell .cards-row .card::before{content:"";grid-row:1/3;width:48px;height:48px;border-radius:14px;background-repeat:no-repeat;background-position:center;background-size:24px}
+#appShell .cards-row .card .card-label{grid-column:2;grid-row:1;align-self:end}
+#appShell .cards-row .card .card-value{grid-column:2;grid-row:2;align-self:start}
+#appShell .cards-row .card:nth-child(1)::before{background-color:#D3F2E4;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%230E9F6E%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 3h12%27/%3E%3Cpath d=%27M6 8h12%27/%3E%3Cpath d=%27m6 13 8.5 8%27/%3E%3Cpath d=%27M6 13h3%27/%3E%3Cpath d=%27M9 13c6.667 0 6.667-10 0-10%27/%3E%3C/svg%3E")}
+#appShell .cards-row .card:nth-child(2)::before{background-color:#FFE3CC;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23EA580C%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%2710%27/%3E%3Cpolyline points=%2712 6 12 12 16 14%27/%3E%3C/svg%3E")}
+#appShell .cards-row .card:nth-child(3)::before{background-color:#D8E5FF;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%231F6BFF%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect width=%2720%27 height=%2714%27 x=%272%27 y=%275%27 rx=%272%27/%3E%3Cline x1=%272%27 x2=%2722%27 y1=%2710%27 y2=%2710%27/%3E%3C/svg%3E")}
+/* ---- Quick actions ---- */
+#appShell .rd-qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:620px){#appShell .rd-qa-grid{grid-template-columns:repeat(2,1fr)}}
+#appShell .rd-qa{display:flex;flex-direction:column;align-items:center;gap:10px;min-height:44px;padding:14px 8px;background:#fff;border:1px solid var(--rd-line);border-radius:14px;font-size:13px;font-weight:600;color:var(--rd-ink);cursor:pointer;transition:box-shadow .15s,border-color .15s}
+#appShell .rd-qa:hover{box-shadow:var(--rd-shadow);border-color:#CFDCF2}
+#appShell .rd-qa-ic{width:46px;height:46px;border-radius:14px;background-repeat:no-repeat;background-position:center;background-size:24px}
+#appShell .rd-qa-ic.pay{background-color:#D3F2E4;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%230E9F6E%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M12 5v14M5 12h14%27/%3E%3C/svg%3E")}
+#appShell .rd-qa-ic.pat{background-color:#D8E5FF;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%231F6BFF%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2%27/%3E%3Ccircle cx=%279%27 cy=%277%27 r=%274%27/%3E%3Cline x1=%2719%27 x2=%2719%27 y1=%278%27 y2=%2714%27/%3E%3Cline x1=%2722%27 x2=%2716%27 y1=%2711%27 y2=%2711%27/%3E%3C/svg%3E")}
+#appShell .rd-qa-ic.exp{background-color:#FFE3CC;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23EA580C%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z%27/%3E%3Cpath d=%27M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8%27/%3E%3Cpath d=%27M12 17.5v-11%27/%3E%3C/svg%3E")}
+#appShell .rd-qa-ic.imp{background-color:#EADFFF;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%237C3AED%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4%27/%3E%3Cpolyline points=%2717 8 12 3 7 8%27/%3E%3Cline x1=%2712%27 x2=%2712%27 y1=%273%27 y2=%2715%27/%3E%3C/svg%3E")}
+</style>
+<script id="redesign-stage2-js">
+(function () {
+  var view = document.getElementById('view-dashboard');
+  var hdr = view && view.querySelector('header.dash-header');
+  var cards = view && view.querySelector('.cards-row');
+  if (!hdr || !cards || document.getElementById('rd-qa')) return;
+
+  function openImport() {
+    var b = document.querySelector('#view-dashboard > .imp-bar .imp-btn');
+    if (b) b.click();
+  }
+  function goTo(slug, ready) {
+    var it = document.querySelector('.nav-item[data-view$="' + slug + '"]');
+    if (!it) return;
+    it.click();
+    if (!ready) return;
+    var n = 0, t = setInterval(function () {
+      var done = false;
+      try { done = ready(); } catch (e) { done = true; }
+      if (done || ++n > 25) clearInterval(t);
+    }, 80);
+  }
+
+  var imp = document.createElement('button');
+  imp.type = 'button'; imp.id = 'rd-import-btn'; imp.className = 'rd-import-btn tap';
+  imp.textContent = 'Smart Import';
+  imp.addEventListener('click', openImport);
+  hdr.appendChild(imp);
+
+  var qa = document.createElement('div');
+  qa.id = 'rd-qa'; qa.className = 'panel';
+  qa.innerHTML =
+    '<div class="panel-title">Quick actions</div><div class="rd-qa-grid">' +
+    '<button type="button" class="rd-qa tap" data-qa="payment"><span class="rd-qa-ic pay"></span>Add Payment</button>' +
+    '<button type="button" class="rd-qa tap" data-qa="patient"><span class="rd-qa-ic pat"></span>Add Patient</button>' +
+    '<button type="button" class="rd-qa tap" data-qa="expense"><span class="rd-qa-ic exp"></span>Log Expense</button>' +
+    '<button type="button" class="rd-qa tap" data-qa="import"><span class="rd-qa-ic imp"></span>Smart Import</button>' +
+    '</div>';
+  cards.parentNode.insertBefore(qa, cards.nextSibling);
+
+  qa.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-qa]');
+    if (!b) return;
+    var a = b.getAttribute('data-qa');
+    if (a === 'payment') { var f = document.getElementById('addBtn'); if (f) f.click(); }
+    else if (a === 'import') openImport();
+    else if (a === 'patient') {
+      goTo('patients', function () {
+        var p = document.getElementById('addPatientBtn');
+        if (p && p.offsetParent) { p.click(); return true; }
+        return false;
+      });
+    } else if (a === 'expense') {
+      goTo('expenses', function () {
+        var f = document.querySelector('#view-expenses-real form');
+        if (f && f.offsetParent) {
+          f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          var i = f.querySelector('input,select');
+          if (i) i.focus({ preventScroll: true });
+          return true;
+        }
+        return false;
+      });
+    }
+  });
+})();
+</script>
+<style id="redesign-stage3">
+/* ---- header order: controls, Smart Import, bell ---- */
+#appShell header.dash-header #exportBtn{order:4}
+#appShell header.dash-header .rd-import-btn{order:5}
+#appShell header.dash-header .rd-bell-wrap{order:6}
+#appShell .rd-hide{display:none !important}
+#appShell .rd-qa[data-qa="import"]{display:none}
+#appShell .rd-qa-grid{grid-template-columns:repeat(3,1fr)}
+@media(max-width:620px){#appShell .rd-qa-grid{grid-template-columns:repeat(3,1fr)}#appShell .rd-qa{font-size:12px;padding:12px 4px}}
+/* ---- 4th KPI card ---- */
+#appShell .cards-row .card:nth-child(4){background:linear-gradient(135deg,#F0E9FF 0%,#fff 75%)}
+#appShell .cards-row .card:nth-child(4)::before{background-color:#EADFFF;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%237C3AED%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2%27/%3E%3Ccircle cx=%279%27 cy=%277%27 r=%274%27/%3E%3Cpath d=%27M22 21v-2a4 4 0 0 0-3-3.87%27/%3E%3Cpath d=%27M16 3.13a4 4 0 0 1 0 7.75%27/%3E%3C/svg%3E")}
+/* ---- rows ---- */
+#appShell .rd-row2{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr);gap:16px;margin-bottom:16px}
+#appShell .rd-row3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.8fr);gap:16px;margin-bottom:16px;align-items:start}
+@media(max-width:1100px){#appShell .rd-row2,#appShell .rd-row3{grid-template-columns:minmax(0,1fr)}}
+#appShell .rd-row2 .panel,#appShell .rd-row3 .panel{margin-bottom:0}
+#appShell .rd-ph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+#appShell .rd-sub{font-size:12px;color:var(--rd-muted);margin-top:2px}
+#appShell .rd-leg{display:flex;gap:14px;font-size:12px;color:var(--rd-muted)}
+#appShell .rd-leg i,#appShell .rd-dl-row i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+#appShell .rd-dl-row i{margin:0}
+#appShell .rd-link{background:none;border:none;color:var(--rd-blue);font-weight:600;font-size:13px;cursor:pointer;padding:4px 0}
+#appShell .rd-donut-svg{display:block;width:190px;max-width:70%;margin:10px auto 0}
+#appShell .rd-dl{display:grid;gap:8px;margin-top:14px}
+#appShell .rd-dl-row{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;font-size:13px}
+#appShell .rd-dl-amt{font-weight:600;font-variant-numeric:tabular-nums}
+/* ---- transactions as a table ---- */
+#appShell #rd-tx-meta .list-count{margin:0 0 6px}
+#appShell .rd-tx-head{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) 92px 96px 28px;column-gap:12px;padding:8px 4px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--rd-muted);border-bottom:1px solid var(--rd-line)}
+#appShell .rd-tx-head span:nth-child(3){text-align:right}
+#appShell #rd-tx:has(.empty-state) .rd-tx-head{display:none}
+#appShell #rd-tx .empty-state{margin-top:8px}
+#appShell #entryList .entry-card{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.3fr) 92px 96px 28px;align-items:center;column-gap:12px;row-gap:6px;padding:12px 4px;margin:0;background:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--rd-line)}
+#appShell #entryList .entry-top,#appShell #entryList .entry-right{display:contents}
+#appShell #entryList .entry-top>div:first-child{grid-column:1;grid-row:1;min-width:0}
+#appShell #entryList .fee-tags{grid-column:2;grid-row:1;margin:0}
+#appShell #entryList .entry-total{grid-column:3;grid-row:1;text-align:right}
+#appShell #entryList .entry-right>div:last-child{grid-column:4;grid-row:1;margin:0 !important;justify-self:start}
+#appShell #entryList .del-btn{grid-column:5;grid-row:1}
+#appShell #entryList .entry-notes{grid-column:1/-1;grid-row:2;margin:0}
+#appShell #entryList .stamp{transform:none;border:none;border-radius:999px;padding:3px 10px;background:#E3F7EE;color:#0E9F6E !important;font-family:'Inter',system-ui,sans-serif;letter-spacing:.03em}
+#appShell #entryList .mark-paid-btn{border:none;border-radius:999px;padding:4px 10px;background:#FFEFE0;color:#EA580C;font-family:'Inter',system-ui,sans-serif}
+#appShell #entryList .fee-tag{font-size:11px}
+@media(max-width:760px){
+#appShell .rd-tx-head{display:none}
+#appShell #entryList .entry-card{grid-template-columns:minmax(0,1fr) auto 28px}
+#appShell #entryList .entry-total{grid-column:2}
+#appShell #entryList .del-btn{grid-column:3}
+#appShell #entryList .fee-tags{grid-column:1/-1;grid-row:2}
+#appShell #entryList .entry-right>div:last-child{grid-column:1/-1;grid-row:3}
+#appShell #entryList .entry-notes{grid-row:4}}
+/* ---- bell ---- */
+#appShell .rd-bell-wrap{position:relative}
+#appShell .rd-bell{position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:#fff;border:none;border-radius:12px;box-shadow:var(--rd-shadow);color:var(--rd-ink);cursor:pointer}
+#appShell .rd-bell svg{width:20px;height:20px}
+#appShell .rd-bell-dot{display:none;position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:50%;background:#EF4444;border:2px solid #fff}
+#appShell .rd-bell-wrap.has .rd-bell-dot{display:block}
+#appShell .rd-bell-panel{display:none;position:absolute;right:0;top:calc(100% + 10px);width:300px;max-width:calc(100vw - 32px);background:#fff;border-radius:16px;box-shadow:0 12px 32px rgba(15,30,61,.18);padding:14px 16px;z-index:40}
+#appShell .rd-bell-wrap.open .rd-bell-panel{display:block}
+#appShell .rd-bell-title{font-weight:700;font-size:14px;margin-bottom:10px}
+#appShell .rd-n{display:flex;flex-direction:column;gap:3px;font-size:13px;color:var(--rd-muted)}
+#appShell .rd-n b{color:var(--rd-ink);font-size:14px}
+#appShell .rd-bell-foot{margin-top:10px;padding-top:8px;border-top:1px solid var(--rd-line);font-size:11px;color:var(--rd-muted)}
+/* ---- help card + guide ---- */
+#appShell .rd-help{margin:14px 0 10px;padding:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:16px;color:#fff}
+#appShell .rd-help-ic{display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:12px;background:var(--rd-blue);margin-bottom:10px}
+#appShell .rd-help-ic svg{width:22px;height:22px}
+#appShell .rd-help-t{font-weight:700;font-size:15px}
+#appShell .rd-help p{margin:4px 0 12px;font-size:12px;line-height:1.45;color:#A8B7D4}
+#appShell .rd-help-btn{width:100%;padding:9px 0;border:none;border-radius:10px;background:#fff;color:var(--rd-navy);font-weight:700;font-size:13px;cursor:pointer}
+#appShell .rd-guide{margin:0 0 12px;padding-left:20px;font-size:14px;line-height:1.5;color:var(--rd-ink)}
+#appShell .rd-guide li{margin-bottom:10px}
+#appShell .rd-guide-c{font-size:13px;color:var(--rd-muted);margin:0 0 14px}
+#appShell .rd-guide-c a{color:var(--rd-blue);font-weight:600}
+</style>
+<script id="redesign-stage3-js">
+(function () {
+  'use strict';
+  var CONTACT_URL = 'https://curevona.world/contact.html';
+  var $ = function (id) { return document.getElementById(id); };
+  var view = $('view-dashboard'), shell = $('appShell'), sidebar = $('sidebar');
+  var hdr = view && view.querySelector('header.dash-header');
+  var cards = view && view.querySelector('.cards-row');
+  if (!view || !shell || !hdr || !cards || $('rd-row2')) return;
+
+  var PAL = { counselling: '#14B8A6', medicine: '#1F6BFF', referral: '#F5B83D', other: '#8B5CF6' };
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function parse(s) { var p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function iso(t) { var x = new Date(t); return x.getUTCFullYear() + '-' + pad(x.getUTCMonth() + 1) + '-' + pad(x.getUTCDate()); }
+  function longDate(t) { var x = new Date(t); return DAYS[x.getUTCDay()] + ', ' + x.getUTCDate() + ' ' + MONTHS[x.getUTCMonth()] + ' ' + x.getUTCFullYear(); }
+  function cmp(v) { if (v >= 1e5) return parseFloat((v / 1e5).toFixed(1)) + 'L'; if (v >= 1e3) return parseFloat((v / 1e3).toFixed(1)) + 'K'; return String(Math.round(v)); }
+  function niceMax(v) { if (v <= 0) return 1; var p = Math.pow(10, Math.floor(Math.log(v) / Math.LN10)), f = v / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p; }
+  function mk(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function goNav(slug) { var it = document.querySelector('.nav-item[data-view$="' + slug + '"]'); if (it) it.click(); }
+  function rangeText() { var r = $('rangeLabel'); return r ? r.textContent : ''; }
+
+  /* ---------- layout: charts row + actions/transactions row ---------- */
+  var row2 = mk('div', 'rd-row2'); row2.id = 'rd-row2';
+  row2.innerHTML =
+    '<div class="panel"><div class="rd-ph"><div><div class="panel-title" style="margin:0">Payment Overview</div><div class="rd-sub" id="rd-chart-sub">Received vs pending</div></div>' +
+    '<div class="rd-leg"><span><i style="background:#1F6BFF"></i>Received</span><span><i style="background:#9CC3FF"></i>Pending</span></div></div><div id="rd-chart"></div></div>' +
+    '<div class="panel"><div class="panel-title" style="margin:0">By Fee Type (Received)</div><div class="rd-sub" id="rd-donut-sub"></div><div id="rd-donut"></div></div>';
+  cards.parentNode.insertBefore(row2, cards.nextSibling);
+
+  var row3 = mk('div', 'rd-row3'); row3.id = 'rd-row3';
+  row2.parentNode.insertBefore(row3, row2.nextSibling);
+  var qa = $('rd-qa'); if (qa) row3.appendChild(qa);
+
+  var tx = mk('div', 'panel'); tx.id = 'rd-tx';
+  tx.innerHTML =
+    '<div class="rd-ph"><div class="panel-title" style="margin:0">Recent Transactions</div><button type="button" class="rd-link" id="rd-viewall">View all</button></div>' +
+    '<div id="rd-tx-meta"></div>' +
+    '<div class="rd-tx-head"><span>Patient</span><span>Fee type</span><span>Amount</span><span>Status</span><span></span></div>' +
+    '<div id="rd-tx-body"></div>';
+  row3.appendChild(tx);
+  if ($('listCount')) $('rd-tx-meta').appendChild($('listCount'));
+  if ($('entryList')) $('rd-tx-body').appendChild($('entryList'));
+  $('rd-viewall').addEventListener('click', function () { goNav('payments'); });
+
+  var tb = $('typeBars');
+  if (tb && tb.closest('.panel')) tb.closest('.panel').classList.add('rd-hide');
+
+  var pc = mk('div', 'card');
+  pc.title = 'Different patients with a payment in the selected period';
+  pc.appendChild(mk('div', 'card-label', 'Patients'));
+  var pv = mk('div', 'card-value', '0'); pv.id = 'rd-patientsVal'; pc.appendChild(pv);
+  cards.appendChild(pc);
+
+  /* ---------- Need Help card + guide ---------- */
+  if (sidebar) {
+    var help = mk('div', 'rd-help');
+    help.innerHTML =
+      '<span class="rd-help-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg></span>' +
+      '<div class="rd-help-t">Need Help?</div><p>Import records, manage payments and more.</p>' +
+      '<button type="button" class="rd-help-btn tap" id="rd-guide-btn">View Guide</button>';
+    var so = sidebar.querySelector('.signout-item');
+    sidebar.insertBefore(help, so || null);
+  }
+  var ov = mk('div', 'sheet-overlay'); ov.id = 'rd-guide-ov';
+  ov.innerHTML =
+    '<div class="sheet" role="dialog" aria-modal="true" aria-label="Quick guide"><h2>Quick guide</h2><ol class="rd-guide">' +
+    '<li><b>Add a payment.</b> Tap the blue + button (or Quick actions, then Add Payment), enter the patient name, tick the fee types and amounts, then Save payment. Untick &quot;Paid at time of visit&quot; to record it as pending, and use Mark paid later.</li>' +
+    '<li><b>Day, Week, Month.</b> Switch the period and use the arrows to move back or forward. Totals, charts and transactions all follow it.</li>' +
+    '<li><b>Smart Import.</b> Bring in patients, payments, expenses or clinic records from photos, PDFs, spreadsheets and documents. You review everything before it is saved.</li>' +
+    '<li><b>Export CSV.</b> Downloads all your payment entries as a spreadsheet file.</li></ol>' +
+    '<p class="rd-guide-c">Still stuck? <a href="' + CONTACT_URL + '" target="_blank" rel="noopener">Contact us</a></p>' +
+    '<button type="button" class="submit-btn tap" id="rd-guide-close">Got it</button></div>';
+  shell.appendChild(ov);
+  function guide(open) { ov.classList.toggle('open', open); }
+  var gb = $('rd-guide-btn'); if (gb) gb.addEventListener('click', function () { guide(true); });
+  $('rd-guide-close').addEventListener('click', function () { guide(false); });
+  ov.addEventListener('click', function (e) { if (e.target === ov) guide(false); });
+
+  /* ---------- notifications bell (pending payments only) ---------- */
+  var wrap = mk('div', 'rd-bell-wrap');
+  wrap.innerHTML =
+    '<button type="button" class="rd-bell tap" id="rd-bell" aria-label="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="rd-bell-dot"></span></button>' +
+    '<div class="rd-bell-panel"><div class="rd-bell-title">Notifications</div><div id="rd-bell-body"></div><div class="rd-bell-foot">Based on the period selected on the Dashboard.</div></div>';
+  hdr.appendChild(wrap);
+  function bellOpen(o) { wrap.classList.toggle('open', o); $('rd-bell').setAttribute('aria-expanded', o ? 'true' : 'false'); }
+  $('rd-bell').addEventListener('click', function (e) { e.stopPropagation(); bellOpen(!wrap.classList.contains('open')); });
+  document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) bellOpen(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { bellOpen(false); guide(false); } });
+
+  /* ---------- data-driven parts ---------- */
+  function inPeriod(d) { return d.entries.filter(function (x) { return d.inRange(x.date, d.range.start, d.range.end); }); }
+
+  function chart(d) {
+    var host = $('rd-chart'), sub = $('rd-chart-sub');
+    var s, e;
+    if (d.period === 'day') { e = parse(d.anchorDate); s = e - 6 * 864e5; sub.textContent = 'Received vs pending, 7 days ending ' + rangeText(); }
+    else { s = parse(d.range.start); e = parse(d.range.end); sub.textContent = 'Received vs pending, ' + rangeText(); }
+    var days = [], map = {};
+    for (var t = s; t <= e; t += 864e5) { days.push(t); map[iso(t)] = { r: 0, p: 0 }; }
+    d.entries.forEach(function (x) {
+      var m = map[x.date]; if (!m) return;
+      var v = d.entryTotal(x);
+      if (x.status === 'paid') m.r += v; else m.p += v;
+    });
+    var peak = 0; days.forEach(function (t) { var m = map[iso(t)]; peak = Math.max(peak, m.r + m.p); });
+    if (peak <= 0) { host.innerHTML = '<div class="empty-state" style="padding:40px 16px">No payments in this period.</div>'; return; }
+    var W = 900, H = 230, L = 46, R = 8, T = 10, B = 28, pw = W - L - R, ph = H - T - B, n = days.length;
+    var max = niceMax(peak), bw = pw / n, barw = Math.min(38, bw * 0.62), svg = '', i;
+    for (i = 0; i <= 4; i++) {
+      var y = T + ph - ph * i / 4;
+      svg += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="#E3EAF5" stroke-width="1"/>' +
+             '<text x="' + (L - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#64748B">' + cmp(max * i / 4) + '</text>';
+    }
+    var step = n <= 7 ? 1 : n <= 16 ? 2 : 3;
+    days.forEach(function (t, idx) {
+      var m = map[iso(t)], x = L + bw * idx + (bw - barw) / 2;
+      var hr = ph * m.r / max, hp = ph * m.p / max;
+      svg += '<g><title>' + longDate(t) + ' - Received ' + d.fmtMoney(m.r) + ', Pending ' + d.fmtMoney(m.p) + '</title>' +
+             '<rect x="' + x + '" y="' + T + '" width="' + barw + '" height="' + ph + '" fill="transparent"/>';
+      if (hr > 0) svg += '<rect x="' + x + '" y="' + (T + ph - hr) + '" width="' + barw + '" height="' + hr + '" rx="3" fill="#1F6BFF"/>';
+      if (hp > 0) svg += '<rect x="' + x + '" y="' + (T + ph - hr - hp) + '" width="' + barw + '" height="' + hp + '" rx="3" fill="#9CC3FF"/>';
+      svg += '</g>';
+      if (idx % step === 0) svg += '<text x="' + (x + barw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#64748B">' + (n <= 7 ? DAYS[new Date(t).getUTCDay()] : new Date(t).getUTCDate()) + '</text>';
+    });
+    host.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Received and pending payments by day">' + svg + '</svg>';
+  }
+
+  function donut(d) {
+    var host = $('rd-donut'); $('rd-donut-sub').textContent = rangeText();
+    var by = {}, tot = 0;
+    inPeriod(d).forEach(function (x) {
+      if (x.status !== 'paid') return;
+      var f = x.fees || {};
+      Object.keys(f).forEach(function (k) { var v = Number(f[k]) || 0; by[k] = (by[k] || 0) + v; tot += v; });
+    });
+    var C = 2 * Math.PI * 70, acc = 0, segs = '';
+    var types = d.FEE_TYPES.map(function (f) { return { label: f.label, color: PAL[f.key] || f.color, v: by[f.key] || 0 }; });
+    if (tot > 0) types.forEach(function (t) {
+      if (t.v <= 0) return;
+      var len = C * t.v / tot;
+      segs += '<circle cx="100" cy="100" r="70" fill="none" stroke="' + t.color + '" stroke-width="28" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-acc) + '" transform="rotate(-90 100 100)"/>';
+      acc += len;
+    });
+    var legend = types.map(function (t) {
+      var pct = tot > 0 ? Math.round(t.v / tot * 100) : 0;
+      return '<div class="rd-dl-row"><i style="background:' + t.color + '"></i><span>' + t.label + '</span><span class="rd-dl-amt">' + pct + '% &middot; ' + d.fmtMoney(t.v) + '</span></div>';
+    }).join('');
+    host.innerHTML =
+      '<svg class="rd-donut-svg" viewBox="0 0 200 200" role="img" aria-label="Received payments by fee type"><circle cx="100" cy="100" r="70" fill="none" stroke="#E8EEF8" stroke-width="28"/>' + segs +
+      '<text x="100" y="100" text-anchor="middle" font-size="16" font-weight="700" fill="#0F1E3D">' + d.fmtMoney(tot) + '</text>' +
+      '<text x="100" y="118" text-anchor="middle" font-size="10" fill="#64748B">Total Received</text></svg>' +
+      '<div class="rd-dl">' + legend + '</div>';
+  }
+
+  function kpi(d) {
+    var seen = {};
+    inPeriod(d).forEach(function (x) { var k = String(x.patient || '').trim().toLowerCase(); if (k) seen[k] = 1; });
+    pv.textContent = Object.keys(seen).length;
+  }
+
+  function bell(d) {
+    var pend = inPeriod(d).filter(function (x) { return x.status !== 'paid'; });
+    var amt = pend.reduce(function (a, x) { return a + d.entryTotal(x); }, 0);
+    wrap.classList.toggle('has', pend.length > 0);
+    var body = $('rd-bell-body'); body.textContent = '';
+    var n = mk('div', 'rd-n');
+    if (pend.length) {
+      n.appendChild(mk('b', null, pend.length + (pend.length === 1 ? ' pending payment' : ' pending payments')));
+      n.appendChild(mk('span', null, d.fmtMoney(amt) + ' still to collect for ' + rangeText()));
+      var go = mk('button', 'rd-link', 'View payments'); go.type = 'button';
+      go.addEventListener('click', function () { bellOpen(false); goNav('payments'); });
+      n.appendChild(go);
+    } else {
+      n.appendChild(mk('b', null, 'All caught up'));
+      n.appendChild(mk('span', null, 'No pending payments for ' + rangeText() + '.'));
+    }
+    body.appendChild(n);
+  }
+
+  function update() {
+    var d = window.__rdData;
+    if (!d || !d.entries || !d.inRange || !d.entryTotal) return;
+    [chart, donut, kpi, bell].forEach(function (f) { try { f(d); } catch (e) { if (window.console) console.error('dashboard widget failed', e); } });
+  }
+  window.addEventListener('rd-render', update);
+  update();
+})();
+</script>
+<style id="redesign-stage4">
+#appShell .rd-row2>.panel:first-child{display:flex;flex-direction:column}
+#appShell #rd-chart{flex:1;display:flex;flex-direction:column;justify-content:center}
+#appShell #rd-chart .empty-state{flex:1;display:flex;align-items:center;justify-content:center;margin:0}
+#appShell #rd-chart svg{max-height:340px}
+#appShell #rd-tx-body{max-height:420px;overflow-y:auto}
+</style>
+<style id="redesign-stage5">
+/* ---- compact desktop layout so the whole dashboard fits ---- */
+@media(min-width:861px){
+#appShell #main{padding:18px 26px 32px}
+#appShell .page-title{font-size:22px}
+#appShell .page-subtitle{font-size:13px}
+#appShell header.dash-header{margin-bottom:14px;gap:10px 12px}
+#appShell .segmented button{padding:6px 16px;font-size:13px}
+#appShell .range-label{padding:6px 14px;min-width:130px;font-size:13px}
+#appShell .nav-btn{width:30px;height:30px}
+#appShell .export-btn{padding:7px 12px;font-size:12px}
+#appShell .rd-import-btn{padding:8px 14px;font-size:13px}
+#appShell .rd-bell{width:38px;height:38px}
+#appShell #view-dashboard .cards-row{gap:12px;margin-bottom:12px}
+#appShell #view-dashboard .card{padding:12px 16px}
+#appShell #view-dashboard .cards-row .card{grid-template-columns:40px 1fr;column-gap:12px}
+#appShell #view-dashboard .cards-row .card::before{width:40px;height:40px;border-radius:12px;background-size:20px}
+#appShell #view-dashboard .card-value{font-size:22px}
+#appShell #view-dashboard .card-label{font-size:11px}
+#appShell .rd-row2,#appShell .rd-row3{gap:12px;margin-bottom:12px}
+#appShell #view-dashboard .panel{padding:14px 16px}
+#appShell #view-dashboard .panel-title{font-size:14px}
+#appShell .rd-ph{margin-bottom:4px}
+#appShell #rd-chart svg{max-height:240px}
+#appShell #rd-chart .empty-state{padding:16px}
+#appShell #rd-donut{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}
+#appShell #rd-donut .rd-donut-svg{width:120px;max-width:none;margin:0;flex:0 0 auto}
+#appShell #rd-donut .rd-dl{flex:1 1 190px;margin-top:0;gap:6px}
+#appShell #rd-donut .rd-dl-row{font-size:12px}
+#appShell .rd-qa-grid{gap:8px}
+#appShell .rd-qa{padding:10px 4px;gap:6px;font-size:12px}
+#appShell .rd-qa-ic{width:38px;height:38px;border-radius:12px;background-size:20px}
+#appShell #rd-tx-body{max-height:clamp(120px,22vh,280px)}
+#appShell .rd-tx-head{padding:6px 4px}
+#appShell #entryList .entry-card{padding:8px 4px}
+#appShell #sidebar{scrollbar-width:thin;scrollbar-color:#2A3B66 transparent}
+#appShell .brand .brand-logocard{padding:8px 10px}
+#appShell .brand .brand-logocard img{width:112px !important}
+#appShell .brand{padding-bottom:12px}
+#appShell .user-card{padding:8px 10px;margin-bottom:10px}
+#appShell .nav-item{padding:8px 12px;margin-bottom:2px;font-size:13.5px}
+#appShell .rd-help{margin:10px 0 8px;padding:12px}
+#appShell .rd-help-ic{width:34px;height:34px;margin-bottom:6px}
+#appShell .rd-help p{margin:3px 0 8px}
+#appShell .rd-help-btn{padding:7px 0}
+}
+@media(min-width:861px) and (max-height:820px){#appShell .rd-help-ic,#appShell .rd-help p{display:none}}
+</style>
+<style id="redesign-stage6">
+/* ---- stage 6: closer match to the reference ---- */
+#appShell .rd-left{display:flex;flex-direction:column;gap:12px;min-width:0}
+#appShell .rd-left .panel{margin-bottom:0}
+#appShell #view-dashboard .cards-row .card::before{grid-row:1/4}
+#appShell .rd-delta{grid-column:2;grid-row:3;margin-top:2px;font-size:11px;font-weight:600;color:var(--rd-muted)}
+#appShell .rd-delta:empty{display:none}
+#appShell .rd-delta.up{color:#0E9F6E}
+#appShell .rd-delta.down{color:#DC2626}
+#appShell .rd-hl-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+#appShell .rd-hl-ic{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 auto;border-radius:10px;background:#FEF3C7}
+#appShell .rd-hl-ic svg{width:18px;height:18px}
+#appShell .rd-hl-list{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:12.5px;line-height:1.4;color:var(--rd-ink)}
+#appShell .rd-hl-list li{display:flex;gap:8px;align-items:flex-start}
+#appShell .rd-hl-list svg{width:16px;height:16px;flex:0 0 auto;margin-top:1px}
+#appShell #view-dashboard .range-label::before{content:"";display:inline-block;width:15px;height:15px;margin-right:8px;vertical-align:-2px;background:currentColor;-webkit-mask:var(--cal) center/contain no-repeat;mask:var(--cal) center/contain no-repeat;--cal:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Crect width=%2718%27 height=%2718%27 x=%273%27 y=%274%27 rx=%272%27/%3E%3Cpath d=%27M16 2v4M8 2v4M3 10h18%27/%3E%3C/svg%3E")}
+@media(min-width:861px){
+#appShell header.dash-header>div:first-child>div:first-child{display:grid;grid-template-columns:44px 1fr;column-gap:12px;align-items:center}
+#appShell header.dash-header>div:first-child>div:first-child::before{content:"";grid-row:1/3;width:44px;height:44px;border-radius:14px;background:#DCE8FF center/22px no-repeat url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%231F6BFF%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z%27/%3E%3Cpath d=%27M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27%27/%3E%3C/svg%3E")}
+#appShell header.dash-header>div:first-child>div:first-child .page-title,#appShell header.dash-header>div:first-child>div:first-child .page-subtitle{grid-column:2}
+}
+@media(min-width:861px) and (max-height:820px){#appShell .rd-help-t{margin-bottom:8px}}
+@media(min-width:861px) and (max-height:680px){#appShell #rd-hl{display:none}}
+@media(min-width:861px) and (min-height:860px){
+#appShell #view-dashboard .cards-row,#appShell .rd-row2,#appShell .rd-row3{gap:16px;margin-bottom:16px}
+#appShell #view-dashboard .card{padding:16px 20px}
+#appShell #view-dashboard .cards-row .card{grid-template-columns:48px 1fr}
+#appShell #view-dashboard .cards-row .card::before{width:48px;height:48px;background-size:24px}
+#appShell #view-dashboard .card-value{font-size:26px}
+#appShell #rd-donut .rd-donut-svg{width:150px}
+#appShell #rd-chart svg{max-height:290px}
+#appShell .nav-item{padding:10px 12px}
+}
+</style>
+<script id="redesign-stage6-js">
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var row3 = $('rd-row3'), qa = $('rd-qa');
+  if (!row3 || !qa || $('rd-hl')) return;
+
+  function mk(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function parse(s) { var p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function iso(t) { var x = new Date(t); return x.getUTCFullYear() + '-' + pad(x.getUTCMonth() + 1) + '-' + pad(x.getUTCDate()); }
+  function rangeText() { var r = $('rangeLabel'); return r ? r.textContent : ''; }
+
+  /* left column: quick actions + highlights */
+  var left = mk('div', 'rd-left');
+  row3.insertBefore(left, row3.firstChild);
+  left.appendChild(qa);
+  var hl = mk('div', 'panel'); hl.id = 'rd-hl';
+  var top = mk('div', 'rd-hl-top');
+  var ic = mk('span', 'rd-hl-ic');
+  ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>';
+  var tt = mk('div'); tt.appendChild(mk('div', 'panel-title', 'Highlights')); tt.firstChild.style.margin = '0';
+  var sub = mk('div', 'rd-sub', ''); sub.id = 'rd-hl-sub'; tt.appendChild(sub);
+  top.appendChild(ic); top.appendChild(tt); hl.appendChild(top);
+  var list = mk('ul', 'rd-hl-list'); list.id = 'rd-hl-list'; hl.appendChild(list);
+  left.appendChild(hl);
+
+  /* trend lines under the KPI values (hidden when there is no previous period to compare) */
+  var cardOf = function (id) { var e = $(id); return e && e.closest('.card'); };
+  var kcards = { rec: cardOf('receivedVal'), pen: cardOf('pendingVal'), txn: cardOf('txnCountVal'), pat: cardOf('rd-patientsVal') };
+  Object.keys(kcards).forEach(function (k) {
+    var c = kcards[k]; if (!c) return;
+    var dl = mk('div', 'rd-delta'); c.appendChild(dl); kcards[k] = dl;
+  });
+
+  function prevRange(d) {
+    var s, e;
+    if (d.period === 'day') { s = e = parse(d.anchorDate) - 864e5; }
+    else if (d.period === 'week') { s = parse(d.range.start) - 7 * 864e5; e = parse(d.range.end) - 7 * 864e5; }
+    else { var x = new Date(parse(d.anchorDate)); s = Date.UTC(x.getUTCFullYear(), x.getUTCMonth() - 1, 1); e = Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), 0); }
+    return { start: iso(s), end: iso(e) };
+  }
+  function metrics(d, r) {
+    var m = { rec: 0, pen: 0, n: 0, pc: 0, pat: 0 }, seen = {};
+    d.entries.forEach(function (x) {
+      if (!d.inRange(x.date, r.start, r.end)) return;
+      var t = d.entryTotal(x); m.n++;
+      if (x.status === 'paid') m.rec += t; else { m.pen += t; m.pc++; }
+      var k = String(x.patient || '').trim().toLowerCase(); if (k) seen[k] = 1;
+    });
+    m.pat = Object.keys(seen).length; return m;
+  }
+  function setDelta(el, cur, prev, goodUp, word) {
+    if (!el) return;
+    if (!(prev > 0)) { el.textContent = ''; el.className = 'rd-delta'; return; }
+    var pct = Math.round((cur - prev) / prev * 100);
+    var arrow = pct > 0 ? '\u2191' : pct < 0 ? '\u2193' : '\u2192';
+    el.className = 'rd-delta ' + (pct === 0 ? '' : ((pct > 0) === goodUp ? 'up' : 'down'));
+    el.textContent = arrow + ' ' + Math.abs(pct) + '% vs ' + word;
+  }
+  var CK = '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="10" fill="#22C55E"/><path d="M5.5 10.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function addItem(text) { var li = mk('li'); li.innerHTML = CK; li.appendChild(mk('span', null, text)); list.appendChild(li); }
+
+  function update() {
+    var d = window.__rdData;
+    if (!d || !d.entries || !d.inRange || !d.entryTotal) return;
+    var cur = metrics(d, d.range), prev = metrics(d, prevRange(d));
+    var word = { day: 'previous day', week: 'previous week', month: 'previous month' }[d.period] || 'previous period';
+    setDelta(kcards.rec, cur.rec, prev.rec, true, word);
+    setDelta(kcards.pen, cur.pen, prev.pen, false, word);
+    setDelta(kcards.txn, cur.n, prev.n, true, word);
+    setDelta(kcards.pat, cur.pat, prev.pat, true, word);
+
+    $('rd-hl-sub').textContent = rangeText();
+    list.textContent = '';
+    if (cur.n === 0) addItem('No payments recorded for this period yet.');
+    else {
+      if (prev.rec > 0) {
+        var pct = Math.round((cur.rec - prev.rec) / prev.rec * 100);
+        addItem(pct === 0 ? 'Received payments are the same as the ' + word + '.' : 'You received ' + Math.abs(pct) + '% ' + (pct > 0 ? 'more' : 'less') + ' than the ' + word + '.');
+      } else if (cur.rec > 0) addItem('You received ' + d.fmtMoney(cur.rec) + '; nothing was received in the ' + word + '.');
+      addItem(cur.pc > 0 ? cur.pc + (cur.pc === 1 ? ' payment is' : ' payments are') + ' pending follow-up (' + d.fmtMoney(cur.pen) + ').' : 'No payments are pending follow-up.');
+      addItem(cur.pat + (cur.pat === 1 ? ' patient' : ' patients') + ' with a payment in this period.');
+    }
+    addItem('Keep your records updated with Smart Import.');
+  }
+  window.addEventListener('rd-render', update);
+  update();
+})();
+</script>
+<style id="redesign-stage7">
+@media(min-width:861px) and (max-height:800px){
+#appShell #rd-hl{padding:10px 16px}
+#appShell #rd-hl .rd-hl-ic,#appShell #rd-hl-sub{display:none}
+#appShell #rd-hl-list li:last-child{display:none}
+#appShell .rd-hl-list{gap:4px}
+}
+</style>
+</body>
 </html>
 
 
@@ -2207,7 +2832,7 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
   ];
   const feeMeta2 = (k) => FEE_TYPES2.find((f) => f.key === k) || FEE_TYPES2[3];
   const fmtMoney2 = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
-  const todayISO2 = () => new Date().toISOString().slice(0, 10);
+  const todayISO2 = () => __localISO(new Date());
   const entryTotal2 = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
   const entryFeeKeys2 = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
   const fmtDateLong2 = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -2221,13 +2846,13 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
     const day = (d.getDay() + 6) % 7;
     const start = new Date(d); start.setDate(d.getDate() - day);
     const end = new Date(start); end.setDate(start.getDate() + 6);
-    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+    return { start: __localISO(start), end: __localISO(end) };
   }
   function monthRange2(iso) {
     const d = new Date(iso + "T00:00:00");
     const start = new Date(d.getFullYear(), d.getMonth(), 1);
     const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+    return { start: __localISO(start), end: __localISO(end) };
   }
   const inRange2 = (dateStr, start, end) => dateStr >= start && dateStr <= end;
 
@@ -2715,7 +3340,7 @@ new MutationObserver(ensureAll).observe(document.body, { childList: true, subtre
     if (repPeriod === "day") d.setDate(d.getDate() + dir);
     else if (repPeriod === "week") d.setDate(d.getDate() + dir * 7);
     else d.setMonth(d.getMonth() + dir);
-    repAnchor = d.toISOString().slice(0, 10);
+    repAnchor = __localISO(d);
     renderReports();
   }
   document.getElementById("repExportBtn").addEventListener("click", () => {
