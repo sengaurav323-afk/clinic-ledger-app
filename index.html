@@ -156,6 +156,24 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
 }
 </style>
 <script>document.documentElement.classList.add("js");</script>
+<script id="routing-head">(function(){var h=location.hostname;if((h==='curevona.web.app'||h==='curevona.firebaseapp.com')&&location.pathname.indexOf('/__/')!==0){location.replace('https://curevona.world'+location.pathname+location.search+location.hash);}})();</script>
+<style id="site-update-css">
+.pl-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:22px}
+.pl-card{display:flex;flex-direction:column;gap:8px}
+.pl-card h3{margin:0}
+.pl-best{border-color:var(--blue,#1F6BFF);box-shadow:0 0 0 1px var(--blue,#1F6BFF)}
+.pl-price{font-size:34px;font-weight:800;line-height:1.1;margin:4px 0 2px}
+.pl-price span{font-size:14px;font-weight:600;color:var(--muted,#64748B)}
+.pl-notes{background:#fff;border:1px solid #E3EAF5;border-radius:16px;padding:22px}
+.pl-notes h3{margin:0 0 10px}
+.pl-notes .btn{margin-top:14px;display:inline-flex}
+.ab-body{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;align-items:start;margin-bottom:18px}
+.ab-body p{margin:0 0 14px;line-height:1.65}
+.ab-founder{padding:22px}
+.ab-founder h3{margin:0 0 10px}
+.ab-founder p{margin:0;color:var(--muted,#64748B)}
+@media(max-width:900px){.pl-grid,.ab-body{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <script>
@@ -163,7 +181,7 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
 (function(){
   var h = location.hash;
   if (location.search.indexOf("preview=1") > -1) return;
-  if (h && h.length > 1 && h.indexOf("#sec-") !== 0) { location.replace("/app.html" + h); }
+  if (h && h.length > 1 && h.indexOf("#sec-") !== 0) { location.replace("/dashboard" + h); }
 })();
 </script>
 
@@ -173,12 +191,12 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
     <nav class="main" id="mainNav" aria-label="Main">
       <a href="#sec-home">Home</a>
       <a href="#sec-features">Features</a>
-      <a href="#sec-clinics">For Doctors/Clinics</a>
-      <a href="#sec-patients">For Patients</a>
+      <a href="#sec-clinics">Doctors and Clinics</a>
+      <a href="#sec-patients">Patients</a>
       <a href="#sec-pricing">Pricing</a>
       <a href="#sec-about">About</a>
     </nav>
-    <a class="btn" href="/app.html">Get Started</a>
+    <a class="btn" href="/signin">Get Started</a>
     <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav"><span></span></button>
   </div>
 </header>
@@ -258,8 +276,8 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
   <section class="block" id="sec-clinics">
     <div class="wrap two">
       <div class="reveal">
-        <span class="eyebrow">For doctors and clinics</span>
-        <h2>For doctors and clinics</h2>
+        <span class="eyebrow">Doctors and Clinics</span>
+        <h2>Doctors and Clinics</h2>
         <p class="lead">Curevona gives your clinic one place for the daily money and patient records that usually live in notebooks and spreadsheets.</p>
         <ul class="ticks">
           <li>See today's received and pending payments at a glance</li>
@@ -281,7 +299,7 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
     <div class="wrap two">
       <div class="reveal">
         <span class="eyebrow">In development</span>
-        <h2>For patients</h2>
+        <h2>Patients</h2>
         <p class="lead">Curevona is built for clinics today. Patient-facing tools, such as a patient dashboard, are in development.</p>
       </div>
       <p class="reveal" style="color:var(--muted)">If you are a patient, please contact your clinic for appointments and payments. We will announce patient features here when they are ready.</p>
@@ -289,39 +307,88 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
   </section>
 
   <section class="block" id="sec-pricing">
-    <div class="wrap">
-      <div class="card price reveal">
-        <span class="tag live">Free trial</span>
-        <h3>Start free for 15 days</h3>
-        <ul class="ticks">
-          <li>Try the features available today</li>
-          <li>Then choose a monthly or yearly plan</li>
-          <li>Plans and prices are shown inside the app</li>
-        </ul>
-        <p class="note">See our <a href="/refunds.html" style="text-decoration:underline">cancellation and refunds</a> policy.</p>
-      </div>
-    </div>
-  </section>
+<div class="wrap">
+<div class="sec-head reveal">
+<span class="eyebrow">Pricing</span>
+<h2>Simple, clear pricing</h2>
+<p>Start with a 15-day free trial, then choose a monthly or yearly plan.</p>
+</div>
+<div class="pl-grid">
+<article class="card pl-card reveal">
+<span class="tag live">Free trial</span>
+<h3>Free Trial</h3>
+<p class="pl-price">&#8377;0 <span>for 15 days</span></p>
+<ul class="ticks">
+<li>Starts automatically when you create your account</li>
+<li>Full access to everything available in Curevona today</li>
+<li>No payment needed to start</li>
+</ul>
+</article>
+<article class="card pl-card reveal">
+<span class="tag live">Monthly</span>
+<h3>Monthly plan</h3>
+<p class="pl-price">&#8377;99 <span>per month</span></p>
+<ul class="ticks">
+<li>Full platform access</li>
+<li>One month of access for each payment</li>
+<li>Pay month by month</li>
+</ul>
+</article>
+<article class="card pl-card pl-best reveal">
+<span class="tag live">Best value</span>
+<h3>Yearly plan</h3>
+<p class="pl-price">&#8377;999 <span>per year</span></p>
+<ul class="ticks">
+<li>Full platform access</li>
+<li>One payment covers a full year</li>
+<li>Save &#8377;189 (about 16%) compared with 12 monthly payments of &#8377;99</li>
+</ul>
+</article>
+</div>
+<div class="pl-notes reveal">
+<h3>Good to know</h3>
+<ul class="ticks">
+<li><b>When your trial ends:</b> you will need to choose a monthly or yearly plan to keep using Curevona.</li>
+<li><b>Subscribing during your trial:</b> your paid period starts the day after the trial ends, so you do not lose any trial days.</li>
+<li><b>Payment:</b> plans are paid online from the Subscription page inside the app, through Razorpay.</li>
+<li><b>Renewal:</b> plans do not renew automatically. To renew, choose a plan again on the Subscription page. You can pick monthly or yearly each time.</li>
+<li><b>Features:</b> every plan includes full access to the features listed above as available today. Features marked Coming soon are still being built and are not available yet.</li>
+<li><b>Cancellation and refunds:</b> please read our <a href="/refunds" style="text-decoration:underline">Cancellation and Refunds policy</a>.</li>
+</ul>
+<a class="btn" href="/signin">Start your 15-day free trial</a>
+</div>
+</div>
+</section>
 
   <section class="block alt" id="sec-about">
-    <div class="wrap about-grid">
-      <div class="reveal">
-        <span class="eyebrow">About</span>
-        <h2>About Curevona</h2>
-        <p class="lead">Curevona is a digital clinic management platform. We are building simple, dependable tools so clinics can run their day with less effort.</p>
-      </div>
-      <p class="reveal" id="sec-contact" style="color:var(--muted)">Questions, ideas or feedback? We would like to hear from you. Visit our <a href="/contact.html" style="color:var(--blue);font-weight:700">Contact Us</a> page.</p>
-    </div>
-  </section>
+<div class="wrap">
+<div class="sec-head reveal">
+<span class="eyebrow">About</span>
+<h2>About Curevona</h2>
+</div>
+<div class="ab-body">
+<div class="reveal">
+<p class="lead">Curevona is a digital clinic management platform designed to help doctors and clinics manage their everyday administrative work more efficiently. Our goal is to simplify routine clinic operations by bringing essential information and workflows into one convenient digital platform.</p>
+<p>Today, Curevona helps clinics keep patient records organised, record payments by fee type, track expenses, and review the day, week or month in simple reports. It works on a phone or a desktop, and each clinic's records stay in its own private account.</p>
+<p>We aim to help healthcare professionals spend less time on repetitive administrative tasks and more time focusing on their patients. Curevona is being developed with an emphasis on simplicity, usability, reliable record management, and accessible technology for clinics of different sizes.</p>
+<p>Our vision is to make digital clinic management easier to adopt for healthcare providers by offering practical tools that support organised workflows, clearer records, and more efficient day-to-day operations. We continue to improve Curevona with a focus on user needs, responsible handling of information, and a better experience for clinic teams and, as patient-facing tools are added, for their patients too.</p>
+</div>
+<aside class="card ab-founder reveal">
+<h3>Founder: Gaurav Sen</h3>
+<p>Curevona was founded by Gaurav Sen with the vision of making clinic management simpler and more accessible through practical digital tools. The initiative focuses on reducing repetitive administrative work, improving the organization of clinic information, and helping healthcare providers adopt technology that supports their daily operations.</p>
+</aside>
+</div>
+<p class="reveal" id="sec-contact" style="color:var(--muted)">Questions, ideas or feedback? We would like to hear from you. Visit our <a href="/contact" style="color:var(--blue);font-weight:700">Contact Us</a> page.</p>
+</div>
+</section>
 </main>
 
 <footer class="site">
   <div class="wrap foot">
     <nav aria-label="Footer">
-      <a href="/terms.html">Terms</a>
-      <a href="/privacy.html">Privacy</a>
-      <a href="/refunds.html">Refunds</a>
-      <a href="/shipping.html">Shipping</a>
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/refunds">Refunds</a>
     </nav>
     <p class="copy">&copy; 2026 Curevona. All rights reserved.</p>
   </div>
@@ -353,7 +420,7 @@ try {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getAuth, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const app = initializeApp({ apiKey: "AIzaSyBjzfzvCXPCifxeG01QRJH6jT3Yh0VxFJk", projectId: "curevona" });
-    onAuthStateChanged(getAuth(app), (user) => { if (user) location.replace("/app.html"); });
+    onAuthStateChanged(getAuth(app), (user) => { if (user) location.replace("/dashboard"); });
   }
 } catch (e) { /* landing page keeps working without it */ }
 </script>

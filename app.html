@@ -197,7 +197,8 @@
 .brand .brand-logocard img{display:block;width:132px !important;max-width:100% !important;height:auto !important;object-fit:contain}
 @media (max-width:359px){.brand .brand-logocard img{width:110px !important}}
 #resetPanel{margin-top:14px}
-</style><script id="local-date-fix">window.__localISO=function(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);};</script></head>
+</style><script id="local-date-fix">window.__localISO=function(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);};</script><meta name="robots" content="noindex, nofollow"><script id="routing-head">(function(){var h=location.hostname;if((h==='curevona.web.app'||h==='curevona.firebaseapp.com')&&location.pathname.indexOf('/__/')!==0){location.replace('https://curevona.world'+location.pathname+location.search+location.hash);}})();</script>
+</head>
 <body>
 
 <div id="authScreen">
@@ -265,7 +266,7 @@
 
 <div id="appShell" style="display:none">
   <div id="sidebar">
-    <div class="brand"><span class="brand-logocard"><img src="assets/curevona-logo.png?v=2" alt="Curevona"></span></div>
+    <div class="brand"><span class="brand-logocard"><img src="/assets/curevona-logo.png?v=2" alt="Curevona"></span></div>
     <div class="user-card">
       <div class="avatar" id="avatarInitials">?</div>
       <div style="min-width:0">
@@ -350,7 +351,7 @@
       <p class="page-subtitle">Your plan and billing status</p>
       <div class="panel" id="subStatusPanel"></div>
       <div class="plan-grid" id="planGrid"></div>
-      <p style="font-size:12px; color:var(--muted)">Note: online payment isn't connected yet — "Subscribe" is a placeholder until a payment gateway is set up.</p>
+      
     </div>
 
     <!-- REFERRAL VIEW -->
@@ -1169,7 +1170,7 @@
     if (btn) { btn.disabled = true; btn.textContent = "Sending..."; }
     setAuthMsg("resetMsg", "", "");
     try {
-      await sendPasswordResetEmail(auth, email, { url: "https://curevona.world/" });
+      await sendPasswordResetEmail(auth, email, { url: "https://curevona.world/signin" });
       setAuthMsg("resetMsg", okMsg, "ok");
     } catch (err) {
       console.error("[Clinic Ledger] Password reset failed:", err.code);
@@ -1244,7 +1245,7 @@
   var bar = document.createElement('div');
   bar.id = 'mobileTopbar';
   bar.innerHTML = '<button type="button" class="mt-menu" aria-label="Open menu" aria-expanded="false">&#9776;</button>' +
-                  '<span class="mt-logocard"><img class="mt-logo" src="assets/curevona-logo.png?v=2" alt="Curevona"></span>' +
+                  '<span class="mt-logocard"><img class="mt-logo" src="/assets/curevona-logo.png?v=2" alt="Curevona"></span>' +
                   '<span class="mt-title">Dashboard</span>';
   var back = document.createElement('div');
   back.id = 'navBackdrop';
@@ -2430,7 +2431,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
 <script id="redesign-stage3-js">
 (function () {
   'use strict';
-  var CONTACT_URL = 'https://curevona.world/contact.html';
+  var CONTACT_URL = 'https://curevona.world/contact';
   var $ = function (id) { return document.getElementById(id); };
   var view = $('view-dashboard'), shell = $('appShell'), sidebar = $('sidebar');
   var hdr = view && view.querySelector('header.dash-header');
@@ -2804,6 +2805,35 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
 #appShell .rd-hl-list{gap:4px}
 }
 </style>
+<script id="routing-sync">
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var shell = $('appShell'), auth = $('authScreen'), sf = $('signupFields');
+  if (!shell || !auth || window.__routeSync) return;
+  window.__routeSync = true;
+  function shown(el) { return !!el && getComputedStyle(el).display !== 'none'; }
+  function put(p) {
+    var h = p === '/dashboard' ? location.hash : '';
+    if (location.pathname !== p) { try { history.replaceState(null, '', p + h); } catch (e) {} }
+  }
+  function sync() {
+    if (shown(shell)) put('/dashboard');
+    else if (shown(auth)) put(shown(sf) ? '/signup' : '/signin');
+  }
+  var mo = new MutationObserver(sync);
+  [shell, auth, sf].forEach(function (el) { if (el) mo.observe(el, { attributes: true, attributeFilter: ['style', 'class'] }); });
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      if (location.pathname === '/signup' && shown(auth) && !shown(sf)) {
+        var t = document.querySelector('#emailToggle a') || $('emailToggle');
+        if (t) t.click();
+      }
+      setTimeout(sync, 1200);
+    }, 200);
+  });
+})();
+</script>
 </body>
 </html>
 
@@ -3566,7 +3596,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
   wrap.insertAdjacentHTML("afterbegin", `
     <div id="authLeftPanel">
       <div class="logo">
-        <span style="display:block;background:#fff;border-radius:14px;padding:14px 18px"><img src="assets/curevona-logo.png?v=2" alt="Curevona" style="display:block;width:min(240px,60vw);height:auto;object-fit:contain"></span>
+        <span style="display:block;background:#fff;border-radius:14px;padding:14px 18px"><img src="/assets/curevona-logo.png?v=2" alt="Curevona" style="display:block;width:min(240px,60vw);height:auto;object-fit:contain"></span>
         
       </div>
       <h2>Smart way to<br/>manage your clinic</h2>
@@ -3850,7 +3880,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
 
   const signinLogo = document.createElement("div");
   signinLogo.className = "signin-logo";
-  signinLogo.innerHTML = `<img src="assets/curevona-logo.png?v=2" alt="Curevona" style="width:min(220px,70%);height:auto;object-fit:contain">`;
+  signinLogo.innerHTML = `<img src="/assets/curevona-logo.png?v=2" alt="Curevona" style="width:min(220px,70%);height:auto;object-fit:contain">`;
   document.getElementById("authHeading").insertAdjacentElement("beforebegin", signinLogo);
 
   const securityFooter = document.createElement("div");

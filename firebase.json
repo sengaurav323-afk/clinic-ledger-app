@@ -34,8 +34,64 @@
                                                             "value":  "no-cache"
                                                         }
                                                     ]
+                                    },
+                                    {
+                                        "source":  "/@(signin|signup|dashboard|reset-password|contact|privacy|terms|refunds)",
+                                        "headers":  [
+                                                        {
+                                                            "key":  "Cache-Control",
+                                                            "value":  "no-cache"
+                                                        }
+                                                    ]
+                                    },
+                                    {
+                                        "source":  "/@(signin|signup|dashboard|reset-password)",
+                                        "headers":  [
+                                                        {
+                                                            "key":  "X-Robots-Tag",
+                                                            "value":  "noindex, nofollow"
+                                                        }
+                                                    ]
                                     }
-                                ]
+                                ],
+                    "cleanUrls":  true,
+                    "trailingSlash":  false,
+                    "redirects":  [
+                                      {
+                                          "source":  "/app.html",
+                                          "destination":  "/dashboard",
+                                          "type":  301
+                                      },
+                                      {
+                                          "source":  "/app",
+                                          "destination":  "/dashboard",
+                                          "type":  301
+                                      },
+                                      {
+                                          "source":  "/shipping",
+                                          "destination":  "/",
+                                          "type":  301
+                                      },
+                                      {
+                                          "source":  "/shipping.html",
+                                          "destination":  "/",
+                                          "type":  301
+                                      }
+                                  ],
+                    "rewrites":  [
+                                     {
+                                         "source":  "/signin",
+                                         "destination":  "/app.html"
+                                     },
+                                     {
+                                         "source":  "/signup",
+                                         "destination":  "/app.html"
+                                     },
+                                     {
+                                         "source":  "/dashboard",
+                                         "destination":  "/app.html"
+                                     }
+                                 ]
                 },
     "storage":  {
                     "rules":  "storage.rules"
