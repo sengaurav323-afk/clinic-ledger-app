@@ -174,6 +174,19 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
 .ab-founder p{margin:0;color:var(--muted,#64748B)}
 @media(max-width:900px){.pl-grid,.ab-body{grid-template-columns:1fr}}
 </style>
+<style id="about-update-css">
+.about-page{max-width:900px;margin:0 auto}
+.ab-title{font-size:clamp(2rem,4vw,2.6rem);line-height:1.2;margin:0 0 14px}
+.ab-lead{font-size:1.2rem;line-height:1.7;margin:0}
+.ab-sec h3{font-size:1.25rem;margin:0 0 10px}
+.ab-sec p{font-size:1.05rem;line-height:1.75;margin:0;color:var(--muted,#475569)}
+.ab-two{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.ab-divider{height:1px;background:#E3EAF5;margin:28px 0}
+.ab-founder{padding:24px 26px}
+.ab-founder h3{font-size:1.25rem;margin:0 0 10px}
+.ab-founder p{font-size:1.05rem;line-height:1.75;margin:0;color:var(--muted,#475569)}
+@media(max-width:800px){.ab-two{grid-template-columns:1fr;gap:22px}.ab-lead{font-size:1.1rem}}
+</style>
 </head>
 <body>
 <script>
@@ -361,24 +374,31 @@ footer.site{border-top:1px solid var(--line);padding:30px 0 calc(30px + env(safe
 </section>
 
   <section class="block alt" id="sec-about">
-<div class="wrap">
-<div class="sec-head reveal">
-<span class="eyebrow">About</span>
-<h2>About Curevona</h2>
+<div class="wrap about-page">
+<h2 class="ab-title reveal">About</h2>
+<p class="ab-lead reveal">Curevona is a digital clinic management platform designed to help doctors and clinics manage their everyday administrative work more efficiently. Our goal is to simplify routine clinic operations by bringing essential information and workflows into one convenient digital platform.</p>
+<div class="ab-divider"></div>
+<div class="ab-sec reveal">
+<h3>What Curevona Does</h3>
+<p>Today, Curevona helps clinics keep patient records organised, record payments by fee type, track expenses, and review the day, week or month in simple reports. It works on a phone or a desktop, and each clinic's records stay within its own account, subject to the platform's access controls and privacy practices.</p>
 </div>
-<div class="ab-body">
-<div class="reveal">
-<p class="lead">Curevona is a digital clinic management platform designed to help doctors and clinics manage their everyday administrative work more efficiently. Our goal is to simplify routine clinic operations by bringing essential information and workflows into one convenient digital platform.</p>
-<p>Today, Curevona helps clinics keep patient records organised, record payments by fee type, track expenses, and review the day, week or month in simple reports. It works on a phone or a desktop, and each clinic's records stay in its own private account.</p>
+<div class="ab-divider"></div>
+<div class="ab-two">
+<div class="ab-sec reveal">
+<h3>Our Mission</h3>
 <p>We aim to help healthcare professionals spend less time on repetitive administrative tasks and more time focusing on their patients. Curevona is being developed with an emphasis on simplicity, usability, reliable record management, and accessible technology for clinics of different sizes.</p>
+</div>
+<div class="ab-sec reveal">
+<h3>Our Vision</h3>
 <p>Our vision is to make digital clinic management easier to adopt for healthcare providers by offering practical tools that support organised workflows, clearer records, and more efficient day-to-day operations. We continue to improve Curevona with a focus on user needs, responsible handling of information, and a better experience for clinic teams and, as patient-facing tools are added, for their patients too.</p>
 </div>
+</div>
+<div class="ab-divider"></div>
 <aside class="card ab-founder reveal">
 <h3>Founder: Gaurav Sen</h3>
 <p>Curevona was founded by Gaurav Sen with the vision of making clinic management simpler and more accessible through practical digital tools. The initiative focuses on reducing repetitive administrative work, improving the organization of clinic information, and helping healthcare providers adopt technology that supports their daily operations.</p>
 </aside>
-</div>
-<p class="reveal" id="sec-contact" style="color:var(--muted)">Questions, ideas or feedback? We would like to hear from you. Visit our <a href="/contact" style="color:var(--blue);font-weight:700">Contact Us</a> page.</p>
+<p class="reveal" id="sec-contact" style="color:var(--muted);margin-top:26px">Questions, ideas or feedback? We would like to hear from you. Visit our <a href="/contact" style="color:var(--blue);font-weight:700">Contact Us</a> page.</p>
 </div>
 </section>
 </main>

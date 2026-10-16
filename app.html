@@ -266,7 +266,7 @@
 
 <div id="appShell" style="display:none">
   <div id="sidebar">
-    <div class="brand"><span class="brand-logocard"><img src="/assets/curevona-logo.png?v=2" alt="Curevona"></span></div>
+    <div class="brand"><img class="brand-logo-direct" src="/assets/curevona-logo-dark.png?v=1" alt="Curevona"></div>
     <div class="user-card">
       <div class="avatar" id="avatarInitials">?</div>
       <div style="min-width:0">
@@ -543,7 +543,7 @@
 
         const q = query(colRef, where("userId", "==", user.uid));
         currentUnsub = onSnapshot(q, (snap) => {
-          entries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          entries = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((e) => !e.voided);
           render();
           renderSubscription();
         }, (err) => {
@@ -874,7 +874,7 @@
     if (paidEnd && paidEnd > now) {
       statusLabel = "Active";
       statusClass = "active";
-      statusDetail = `${paidPlan === "yearly" ? "Yearly" : "Monthly"} plan — renews ${fmtDateLong(paidEnd)}`;
+      statusDetail = `${paidPlan === "yearly" ? "Yearly" : "Monthly"} plan — valid until ${fmtDateLong(paidEnd)}`;
     } else if (trialEnd > now) {
       statusLabel = "Free Trial";
       statusClass = "trial";
@@ -895,7 +895,7 @@
         <div>Trial start<br><b style="color:var(--ink)">${fmtDateLong(createdAt)}</b></div>
         <div>Trial end<br><b style="color:var(--ink)">${fmtDateLong(trialEnd)}</b></div>
         ${paidStart ? `<div>Subscription start<br><b style="color:var(--ink)">${fmtDateLong(paidStart)}</b></div>` : ""}
-        ${paidEnd ? `<div>Next renewal<br><b style="color:var(--ink)">${fmtDateLong(paidEnd)}</b></div>` : ""}
+        ${paidEnd ? `<div>Access ends<br><b style="color:var(--ink)">${fmtDateLong(paidEnd)}</b></div>` : ""}
       </div>
     `;
 
@@ -915,14 +915,14 @@
         ${isMonthlyCurrent ? `<span class="plan-badge active">Current</span>` : ""}
         <div class="plan-name">Monthly</div>
         <div class="plan-price">₹99 <span>/ month</span></div>
-        <ul class="plan-features"><li>Full platform access</li><li>Monthly renewal</li></ul>
+        <ul class="plan-features"><li>Full platform access</li><li>1 month of access</li></ul>
         <button class="plan-btn primary tap" data-plan="monthly">Subscribe Monthly</button>
       </div>
       <div class="plan-card ${isYearlyCurrent ? "current" : ""}">
         ${isYearlyCurrent ? `<span class="plan-badge active">Current</span>` : ""}
         <div class="plan-name">Yearly</div>
         <div class="plan-price">₹999 <span>/ year</span></div>
-        <ul class="plan-features"><li>Full platform access</li><li>Annual renewal</li><li>Save vs monthly</li></ul>
+        <ul class="plan-features"><li>Full platform access</li><li>12 months of access</li><li>Save vs monthly</li></ul>
         <button class="plan-btn primary tap" data-plan="yearly">Subscribe Yearly</button>
       </div>
     `;
@@ -1250,7 +1250,7 @@
   var bar = document.createElement('div');
   bar.id = 'mobileTopbar';
   bar.innerHTML = '<button type="button" class="mt-menu" aria-label="Open menu" aria-expanded="false">&#9776;</button>' +
-                  '<span class="mt-logocard"><img class="mt-logo" src="/assets/curevona-logo.png?v=2" alt="Curevona"></span>' +
+                  '<span class="mt-logocard"><img class="mt-logo" src="/assets/curevona-logo-dark.png?v=1" alt="Curevona"></span>' +
                   '<span class="mt-title">Dashboard</span>';
   var back = document.createElement('div');
   back.id = 'navBackdrop';
@@ -2839,6 +2839,821 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
   });
 })();
 </script>
+<style id="entry-actions-css">
+#appShell .rdx-menu{position:relative;flex-shrink:0}
+#appShell .rdx-dots{background:transparent;border:none;font-size:22px;line-height:1;width:34px;height:34px;border-radius:10px;cursor:pointer;color:#64748B}
+#appShell .rdx-dots:hover{background:#EEF3FB}
+#appShell .rdx-pop{display:none;position:fixed;min-width:180px;background:#fff;border:1px solid #E3EAF5;border-radius:12px;box-shadow:0 12px 32px rgba(15,30,61,.18);padding:6px;z-index:60}
+#appShell .rdx-menu.open .rdx-pop{display:block}
+#appShell .rdx-pop button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer;color:#0F1E3D}
+#appShell .rdx-pop button:hover{background:#EEF3FB}
+#appShell .rdx-pop button.danger{color:#B42318}
+#appShell .rdx-tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;background:#EEF3FB;color:#475569;font-size:10.5px;font-weight:600;font-family:'Inter',system-ui,sans-serif}
+#appShell .rdx-tag.fix{background:#E5EEFF;color:#1F6BFF}
+#appShell .rdx-tag.void{background:#FEE4E2;color:#B42318}
+#appShell .entry-card.rdx-voided{opacity:.65}
+#appShell .entry-card.rdx-voided .entry-total{text-decoration:line-through}
+#appShell .rdx-sheet{max-width:480px}
+#appShell .rdx-note{font-size:13.5px;line-height:1.55;color:#475569;margin:0 0 10px}
+#appShell .rdx-h3{font-size:14px;margin:14px 0 6px}
+#appShell .rdx-t{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:8px}
+#appShell .rdx-t td{padding:6px 0;border-bottom:1px solid #EEF3FB}
+#appShell .rdx-t td.r{text-align:right;font-weight:600}
+#appShell .rdx-ch{margin:0 0 10px;padding-left:18px;font-size:13.5px;line-height:1.55}
+#appShell .rdx-fee{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#appShell .rdx-fee span{width:90px;font-size:13px}
+#appShell .rdx-fee .text-input{margin-bottom:0}
+#appShell .rdx-hist{font-size:13px;line-height:1.5;color:#475569}
+#appShell .rdx-h{padding:8px 0;border-bottom:1px solid #EEF3FB}
+#appShell .rdx-h span{color:#64748B;margin-left:6px}
+#appShell .rdx-h ul{margin:4px 0 0;padding-left:18px}
+#appShell .rdx-err{color:#B42318;font-size:13px;min-height:18px;margin:6px 0}
+#appShell .rdx-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
+#appShell .rdx-actions .submit-btn{width:auto;padding:10px 18px}
+#appShell .rdx-actions .export-btn{padding:10px 16px}
+#appShell .submit-btn.danger{background:#D92D20;box-shadow:0 6px 14px rgba(217,45,32,.25)}
+#rdx-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:#0F1E3D;color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:80}
+#rdx-toast.show{opacity:1;transform:translateX(-50%)}
+#rdx-toast.bad{background:#B42318}
+#appShell #entryList .rdx-menu{grid-column:5;grid-row:1}
+@media(max-width:760px){#appShell #entryList .rdx-menu{grid-column:3}}
+</style>
+<script type="module" id="entry-actions">
+import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, query, where, getDocs, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+(function () {
+'use strict';
+var db, auth;
+try { var app = getApp(); db = getFirestore(app); auth = getAuth(app); }
+catch (e) { if (window.console) console.warn('Entry actions unavailable', e); return; }
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+var FEES = [['counselling', 'Counselling'], ['medicine', 'Medicine'], ['referral', 'Referral'], ['other', 'Other']];
+var rupee = function (n) { return '\u20b9' + Number(n || 0).toLocaleString('en-IN'); };
+var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+var today = function () { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+var nowISO = function () { return new Date().toISOString(); };
+var keyOf = function (s) { return String(s || '').trim().toLowerCase(); };
+var uid = function () { return auth.currentUser ? auth.currentUser.uid : null; };
+var allEntries = function () { return window.__rdAll || []; };
+var findEntry = function (id) { return allEntries().filter(function (e) { return e.id === id; })[0]; };
+var cleanFees = function (f) { var o = {}; FEES.forEach(function (p) { var v = Number((f || {})[p[0]]); if (v > 0) o[p[0]] = v; }); return o; };
+var feeText = function (f) { var c = cleanFees(f); var t = FEES.filter(function (p) { return c[p[0]]; }).map(function (p) { return p[1] + ' ' + rupee(c[p[0]]); }); return t.length ? t.join(', ') : 'none'; };
+var totalOf = function (e) { var c = cleanFees(e.fees), s = 0; Object.keys(c).forEach(function (k) { s += c[k]; }); return s; };
+var busy = false;
+function toast(msg, bad) {
+var t = $('rdx-toast');
+if (!t) { t = document.createElement('div'); t.id = 'rdx-toast'; t.setAttribute('role', 'status'); ($('appShell') || document.body).appendChild(t); }
+t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+clearTimeout(toast.h); toast.h = setTimeout(function () { t.className = ''; }, 4500);
+}
+function overlay() {
+var ov = $('rdx-ov');
+if (ov) return ov;
+ov = document.createElement('div'); ov.id = 'rdx-ov'; ov.className = 'sheet-overlay';
+ov.innerHTML = '<div class="sheet rdx-sheet" role="dialog" aria-modal="true"><div class="rdx-body"></div></div>';
+ov.addEventListener('click', function (ev) { if (ev.target === ov || (ev.target.closest && ev.target.closest('[data-close]'))) closeSheet(); });
+($('appShell') || document.body).appendChild(ov);
+return ov;
+}
+function sheet(html) { var ov = overlay(); ov.querySelector('.rdx-body').innerHTML = html; ov.classList.add('open'); var f = ov.querySelector('input:not([type=hidden]),select,textarea'); if (f) f.focus(); }
+function closeSheet() { if (busy) return; var ov = $('rdx-ov'); if (ov) ov.classList.remove('open'); }
+function errText(err) {
+var c = err && (err.code || err.message) || '';
+if (/permission-denied/.test(c)) return 'Permission denied. Please make sure the updated security rules are published, then try again.';
+if (c === 'voided') return 'This entry has already been voided.';
+if (c === 'missing') return 'This entry no longer exists.';
+if (/unavailable|network/.test(c)) return 'Could not reach the database. Check your connection and try again.';
+return 'Something went wrong (' + (c || 'unknown') + '). Nothing was changed.';
+}
+function lockButtons(on) { busy = on; var ov = $('rdx-ov'); if (ov) ov.querySelectorAll('button').forEach(function (b) { b.disabled = on; }); }
+function setErr(msg) { var e = $('rdx-err'); if (e) e.textContent = msg || ''; }
+function fmtChange(k, c) {
+var lab = { patient: 'Patient', date: 'Date', notes: 'Notes', status: 'Status', fees: 'Fees' }[k] || k;
+var f = k === 'fees' ? feeText(c.from) : (c.from === '' ? '(empty)' : String(c.from));
+var t = k === 'fees' ? feeText(c.to) : (c.to === '' ? '(empty)' : String(c.to));
+return '<li><b>' + esc(lab) + ':</b> ' + esc(f) + ' &rarr; ' + esc(t) + '</li>';
+}
+async function viewEntry(e) {
+var rows = FEES.filter(function (p) { return Number((e.fees || {})[p[0]]) > 0; }).map(function (p) { return '<tr><td>' + p[1] + '</td><td class="r">' + rupee(e.fees[p[0]]) + '</td></tr>'; }).join('');
+var status = e.voided ? 'Voided' : (e.status === 'paid' ? 'Paid' : 'Pending');
+sheet('<h2>Payment details</h2><table class="rdx-t">' +
+'<tr><td>Patient</td><td class="r">' + esc(e.patient) + '</td></tr><tr><td>Date</td><td class="r">' + esc(e.date) + '</td></tr>' + rows +
+'<tr><td><b>Total</b></td><td class="r"><b>' + rupee(totalOf(e)) + '</b></td></tr><tr><td>Status</td><td class="r">' + status + (e.paidAt && !e.voided && e.status === 'paid' ? ' on ' + esc(e.paidAt) : '') + '</td></tr>' +
+(e.notes ? '<tr><td>Notes</td><td class="r">' + esc(e.notes) + '</td></tr>' : '') +
+(e.voided ? '<tr><td>Void reason</td><td class="r">' + esc(e.voidReason || '') + '</td></tr>' : '') + '</table>' +
+'<p class="rdx-note">Manual entry: recorded by your clinic. It is not verified with a bank or payment provider.</p>' +
+'<h3 class="rdx-h3">History</h3><div id="rdx-hist" class="rdx-hist">Loading&hellip;</div>' +
+'<div class="rdx-actions"><button type="button" class="submit-btn" data-close>Close</button></div>');
+var host = $('rdx-hist');
+try {
+var snap = await getDocs(query(collection(db, 'entry_audit'), where('userId', '==', uid()), where('entryId', '==', e.id)));
+var items = []; snap.forEach(function (d) { items.push(d.data()); });
+items.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
+if (!host) return;
+host.innerHTML = items.length ? items.map(function (a) {
+var ch = a.changes ? '<ul>' + Object.keys(a.changes).map(function (k) { return fmtChange(k, a.changes[k]); }).join('') + '</ul>' : '';
+return '<div class="rdx-h"><b>' + (a.action === 'void' ? 'Voided' : 'Corrected') + '</b> <span>' + esc(new Date(a.at).toLocaleString('en-IN')) + '</span><div>Reason: ' + esc(a.reason) + '</div>' + ch + '</div>';
+}).join('') : 'No corrections or voids recorded.';
+} catch (err) { if (host) host.textContent = 'History is unavailable right now.'; }
+}
+function readForm() {
+var fees = {}; FEES.forEach(function (p) { var v = parseFloat($('rdx-fee-' + p[0]).value); if (v > 0) fees[p[0]] = v; });
+return { patient: $('rdx-patient').value.trim(), date: $('rdx-date').value, notes: $('rdx-notes').value.trim(), fees: fees, status: $('rdx-paid').checked ? 'paid' : 'pending', reason: $('rdx-reason').value.trim() };
+}
+function validate(n) {
+if (!n.patient || n.patient.length > 100) return 'Enter the patient name (up to 100 characters).';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(n.date) || isNaN(new Date(n.date + 'T00:00:00').getTime())) return 'Enter a valid date.';
+if (!Object.keys(n.fees).length) return 'Enter at least one fee amount above zero.';
+for (var k in n.fees) { if (n.fees[k] > 10000000) return 'An amount is unrealistically large. Please check it.'; }
+if (n.notes.length > 500) return 'Notes can be up to 500 characters.';
+if (n.reason.length < 3 || n.reason.length > 300) return 'Please give a reason for the correction (3 to 300 characters).';
+return '';
+}
+function diffEntry(e, n) {
+var ch = {};
+if (n.patient !== String(e.patient || '')) ch.patient = { from: String(e.patient || ''), to: n.patient };
+if (n.date !== String(e.date || '')) ch.date = { from: String(e.date || ''), to: n.date };
+if (n.notes !== String(e.notes || '')) ch.notes = { from: String(e.notes || ''), to: n.notes };
+var os = e.status === 'paid' ? 'paid' : 'pending';
+if (n.status !== os) ch.status = { from: os, to: n.status };
+var of = cleanFees(e.fees), changed = false;
+FEES.forEach(function (p) { if ((of[p[0]] || 0) !== (n.fees[p[0]] || 0)) changed = true; });
+if (changed) ch.fees = { from: of, to: n.fees };
+return ch;
+}
+function correctEntry(e) {
+var f = cleanFees(e.fees);
+sheet('<h2>Correct entry</h2><p class="rdx-note">Fix details you entered wrongly. Your changes are saved with the old values, so there is a record of the correction. This does not change any payment with a bank or payment provider.</p>' +
+'<form id="rdx-form" novalidate><label class="field-label">Patient name</label><input class="text-input" id="rdx-patient" maxlength="100" value="' + esc(e.patient) + '">' +
+'<label class="field-label">Date</label><input class="text-input" type="date" id="rdx-date" value="' + esc(e.date) + '">' +
+'<label class="field-label">Fees</label>' + FEES.map(function (p) { return '<div class="rdx-fee"><span>' + p[1] + '</span><input class="text-input" type="number" min="0" step="0.01" inputmode="decimal" id="rdx-fee-' + p[0] + '" value="' + (f[p[0]] || '') + '" placeholder="0"></div>'; }).join('') +
+'<div class="checkbox-row"><input type="checkbox" id="rdx-paid"' + (e.status === 'paid' ? ' checked' : '') + ' style="width:18px;height:18px"><label for="rdx-paid" style="font-size:14px">Paid</label></div>' +
+'<label class="field-label">Notes (optional)</label><input class="text-input" id="rdx-notes" maxlength="500" value="' + esc(e.notes || '') + '">' +
+'<label class="field-label">Reason for correction (required)</label><input class="text-input" id="rdx-reason" maxlength="300" placeholder="e.g. wrong amount typed">' +
+'<div id="rdx-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-close>Cancel</button><button type="submit" class="submit-btn">Review changes</button></div></form>' +
+'<div id="rdx-sum" style="display:none"></div>');
+$('rdx-form').addEventListener('submit', function (ev) {
+ev.preventDefault();
+var n = readForm(), msg = validate(n);
+if (msg) { setErr(msg); return; }
+var ch = diffEntry(e, n);
+if (!Object.keys(ch).length) { setErr('Nothing has changed.'); return; }
+$('rdx-form').style.display = 'none';
+var sum = $('rdx-sum'); sum.style.display = 'block';
+sum.innerHTML = '<h3 class="rdx-h3">Confirm these changes</h3><ul class="rdx-ch">' + Object.keys(ch).map(function (k) { return fmtChange(k, ch[k]); }).join('') + '</ul><p class="rdx-note">Reason: ' + esc(n.reason) + '</p><div id="rdx-err" class="rdx-err"></div>' +
+'<div class="rdx-actions"><button type="button" id="rdx-back" class="export-btn">Back</button><button type="button" id="rdx-save" class="submit-btn">Confirm and save</button></div>';
+$('rdx-back').addEventListener('click', function () { sum.style.display = 'none'; $('rdx-form').style.display = 'block'; });
+$('rdx-save').addEventListener('click', async function () {
+if (busy) return; lockButtons(true);
+try {
+await runTransaction(db, async function (tx) {
+var ref = doc(db, 'clinic_entries', e.id), snap = await tx.get(ref);
+if (!snap.exists()) throw { code: 'missing' };
+var cur = snap.data();
+if (cur.voided) throw { code: 'voided' };
+if (cur.userId !== uid()) throw { code: 'permission-denied' };
+tx.update(ref, { patient: n.patient, date: n.date, notes: n.notes, fees: n.fees, status: n.status,
+paidAt: n.status === 'paid' ? (cur.status === 'paid' && cur.paidAt ? cur.paidAt : today()) : null,
+correctedAt: nowISO(), correctionCount: (Number(cur.correctionCount) || 0) + 1 });
+tx.set(doc(collection(db, 'entry_audit')), { userId: uid(), entryId: e.id, action: 'correct', reason: n.reason, changes: ch, at: nowISO() });
+});
+lockButtons(false); closeSheet(); toast('Entry corrected. Totals and reports are updated.');
+} catch (err) { lockButtons(false); setErr(errText(err)); }
+});
+});
+}
+var REASONS = ['Duplicate entry', 'Entered for the wrong patient', 'Wrong amount', 'Entered by mistake', 'Other'];
+function voidEntry(e) {
+sheet('<h2>Void this entry?</h2><p class="rdx-note"><b>' + esc(e.patient) + '</b> &middot; ' + esc(e.date) + ' &middot; ' + rupee(totalOf(e)) + '</p>' +
+'<p class="rdx-note">The entry stays in your history marked <b>Voided</b>, but it will no longer count in totals, reports or patient balances. Voiding does <b>not</b> issue a refund or change any payment with a bank or payment provider.</p>' +
+'<label class="field-label">Reason (required)</label><select class="text-input" id="rdx-vr">' + REASONS.map(function (r) { return '<option>' + r + '</option>'; }).join('') + '</select>' +
+'<input class="text-input" id="rdx-vo" maxlength="200" placeholder="Details (required if Other)" style="display:none">' +
+'<div id="rdx-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-close>Cancel</button><button type="button" id="rdx-go" class="submit-btn danger">Void entry</button></div>');
+$('rdx-vr').addEventListener('change', function () { $('rdx-vo').style.display = $('rdx-vr').value === 'Other' ? 'block' : 'none'; });
+$('rdx-go').addEventListener('click', async function () {
+if (busy) return;
+var r = $('rdx-vr').value, o = $('rdx-vo').value.trim();
+if (r === 'Other' && o.length < 3) { setErr('Please describe the reason.'); return; }
+var reason = r === 'Other' ? o : r + (o ? ': ' + o : '');
+lockButtons(true);
+try {
+await runTransaction(db, async function (tx) {
+var ref = doc(db, 'clinic_entries', e.id), snap = await tx.get(ref);
+if (!snap.exists()) throw { code: 'missing' };
+var cur = snap.data();
+if (cur.voided) throw { code: 'voided' };
+if (cur.userId !== uid()) throw { code: 'permission-denied' };
+tx.update(ref, { voided: true, voidedAt: nowISO(), voidReason: reason });
+tx.set(doc(collection(db, 'entry_audit')), { userId: uid(), entryId: e.id, action: 'void', reason: reason, at: nowISO() });
+});
+lockButtons(false); closeSheet(); toast('Entry voided. It no longer counts in totals.');
+} catch (err) { lockButtons(false); setErr(errText(err)); }
+});
+}
+function deleteEntry(e) {
+var strong = !e.voided && e.status === 'paid';
+sheet('<h2>Delete this entry?</h2><p class="rdx-note"><b>' + esc(e.patient) + '</b> &middot; ' + esc(e.date) + ' &middot; ' + rupee(totalOf(e)) + '</p>' +
+'<p class="rdx-note">This permanently removes the entry and its correction history from your account. It does <b>not</b> refund or change any payment with a bank or payment provider.' + (strong ? ' If this payment really happened, consider <b>Void Entry</b> instead, which keeps a record.' : '') + '</p>' +
+(strong ? '<label class="field-label">Type DELETE to confirm</label><input class="text-input" id="rdx-typed" autocomplete="off">' : '') +
+'<div id="rdx-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-close>Cancel</button><button type="button" id="rdx-go" class="submit-btn danger">Delete entry</button></div>');
+$('rdx-go').addEventListener('click', async function () {
+if (busy) return;
+if (strong && $('rdx-typed').value.trim() !== 'DELETE') { setErr('Type DELETE (capital letters) to confirm.'); return; }
+lockButtons(true);
+try {
+var refs = [];
+try { var s = await getDocs(query(collection(db, 'entry_audit'), where('userId', '==', uid()), where('entryId', '==', e.id))); s.forEach(function (d) { refs.push(d.ref); }); } catch (x) { /* no history yet */ }
+var b = writeBatch(db);
+refs.forEach(function (r) { b.delete(r); });
+b.delete(doc(db, 'clinic_entries', e.id));
+await b.commit();
+lockButtons(false); closeSheet(); toast('Entry deleted.');
+} catch (err) { lockButtons(false); setErr(errText(err)); }
+});
+}
+function deletePatient(p) {
+var ents = allEntries().filter(function (x) { return keyOf(x.patient) === p.key; });
+var docs = (window.__rdPatients || []).filter(function (x) { return keyOf(x.name) === p.key; });
+var voidedN = ents.filter(function (x) { return x.voided; }).length;
+var strong = ents.length > 0;
+sheet('<h2>Delete patient?</h2><p class="rdx-note"><b>' + esc(p.name) + '</b></p><p class="rdx-note">This will permanently delete:</p><ul class="rdx-ch"><li>' + docs.length + ' patient record' + (docs.length === 1 ? '' : 's') + '</li><li>' + ents.length + ' payment entr' + (ents.length === 1 ? 'y' : 'ies') + (voidedN ? ' (' + voidedN + ' voided)' : '') + ' and their correction history</li></ul>' +
+'<p class="rdx-note">It does <b>not</b> refund or change any payment with a bank or payment provider.' + (strong ? ' If only some entries are wrong, use <b>Correct Entry</b> or <b>Void Entry</b> on the Payments page instead.' : '') + '</p>' +
+(strong ? '<label class="field-label">Type DELETE to confirm</label><input class="text-input" id="rdx-typed" autocomplete="off">' : '') +
+'<div id="rdx-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-close>Cancel</button><button type="button" id="rdx-go" class="submit-btn danger">Delete patient</button></div>');
+$('rdx-go').addEventListener('click', async function () {
+if (busy) return;
+if (strong && $('rdx-typed').value.trim() !== 'DELETE') { setErr('Type DELETE (capital letters) to confirm.'); return; }
+lockButtons(true);
+try {
+var byEntry = {};
+try { var s = await getDocs(query(collection(db, 'entry_audit'), where('userId', '==', uid()))); s.forEach(function (d) { var k = d.data().entryId; (byEntry[k] = byEntry[k] || []).push(d.ref); }); } catch (x) { /* no history yet */ }
+var groups = ents.map(function (x) { return (byEntry[x.id] || []).concat([doc(db, 'clinic_entries', x.id)]); }).concat(docs.map(function (x) { return [doc(db, 'patients', x.id)]; }));
+var b = writeBatch(db), n = 0;
+for (var i = 0; i < groups.length; i++) {
+if (n + groups[i].length > 450) { await b.commit(); b = writeBatch(db); n = 0; }
+groups[i].forEach(function (r) { b.delete(r); }); n += groups[i].length;
+}
+if (n) await b.commit();
+lockButtons(false); closeSheet(); toast('Patient deleted.');
+} catch (err) { lockButtons(false); setErr(errText(err) + ' Some items may remain; please try again.'); }
+});
+}
+function closeMenus() { document.querySelectorAll('.rdx-menu.open').forEach(function (m) { m.classList.remove('open'); var b = m.querySelector('.rdx-dots'); if (b) b.setAttribute('aria-expanded', 'false'); }); }
+function attach(card, kind, ref) {
+var top = card.querySelector('.entry-top'); if (!top) return;
+var wrap = document.createElement('div'); wrap.className = 'rdx-menu';
+wrap.innerHTML = '<button type="button" class="rdx-dots" aria-label="Actions" aria-haspopup="true" aria-expanded="false">&#8942;</button><div class="rdx-pop" role="menu">' +
+(kind === 'patient' ? '<button type="button" role="menuitem" data-a="pdel" class="danger">Delete Patient</button>'
+: '<button type="button" role="menuitem" data-a="view">View Details</button>' + (ref.voided ? '' : '<button type="button" role="menuitem" data-a="correct">Correct Entry</button><button type="button" role="menuitem" data-a="void">Void Entry</button>') + '<button type="button" role="menuitem" data-a="del" class="danger">Delete Entry</button>') + '</div>';
+top.appendChild(wrap);
+var dots = wrap.querySelector('.rdx-dots'), pop = wrap.querySelector('.rdx-pop');
+dots.addEventListener('click', function (ev) {
+ev.stopPropagation(); var open = !wrap.classList.contains('open'); closeMenus();
+if (open) { var r = dots.getBoundingClientRect(); pop.style.top = (r.bottom + 4) + 'px'; pop.style.right = Math.max(8, window.innerWidth - r.right) + 'px'; wrap.classList.add('open'); dots.setAttribute('aria-expanded', 'true'); }
+});
+wrap.querySelectorAll('[data-a]').forEach(function (b) {
+b.addEventListener('click', function (ev) {
+ev.stopPropagation(); closeMenus();
+var cur = kind === 'patient' ? ref : (findEntry(ref.id) || ref);
+({ view: viewEntry, correct: correctEntry, 'void': voidEntry, del: deleteEntry, pdel: deletePatient })[b.dataset.a](cur);
+});
+});
+}
+function tag(card, e, full) {
+var meta = card.querySelector('.entry-date'); if (!meta) return;
+var add = function (cls, txt) { var s = document.createElement('span'); s.className = 'rdx-tag ' + cls; s.textContent = txt; meta.appendChild(s); };
+if (full) add('', 'Manual entry');
+if (e.correctedAt) add('fix', 'Corrected');
+if (e.voided) {
+add('void', 'Voided' + (e.voidReason ? ': ' + e.voidReason : '')); card.classList.add('rdx-voided');
+var st = card.querySelector('.stamp'); if (st) { st.textContent = 'Voided'; st.style.color = '#64748B'; }
+}
+}
+function enhanceEntries(listId, full) {
+var list = $(listId); if (!list) return;
+list.querySelectorAll('.entry-card').forEach(function (card) {
+if (card.dataset.rdx) return;
+var idEl = card.querySelector('[data-id]'); if (!idEl) return;
+var e = findEntry(idEl.dataset.id); if (!e) return;
+card.dataset.rdx = '1';
+card.querySelectorAll('[data-action="edit"],[data-action="pdelete"],[data-action="delete"]').forEach(function (x) { x.style.display = 'none'; });
+tag(card, e, full); attach(card, 'entry', e);
+});
+}
+function enhancePatients() {
+var list = $('patientList'); if (!list) return;
+list.querySelectorAll('.entry-card').forEach(function (card) {
+if (card.dataset.rdx) return;
+var n = card.querySelector('.entry-name'); if (!n) return;
+card.dataset.rdx = '1'; attach(card, 'patient', { name: n.textContent, key: keyOf(n.textContent) });
+});
+}
+var pending = false;
+function kick() { if (pending) return; pending = true; requestAnimationFrame(function () { pending = false; enhanceEntries('payList', true); enhanceEntries('entryList', false); enhancePatients(); }); }
+['payList', 'entryList', 'patientList'].forEach(function (id) { var el = $(id); if (el) new MutationObserver(kick).observe(el, { childList: true }); });
+window.addEventListener('rdx-data', kick); window.addEventListener('rd-render', kick);
+document.addEventListener('click', closeMenus);
+window.addEventListener('scroll', closeMenus, true);
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeMenus(); closeSheet(); } });
+kick();
+})();
+</script>
+<style id="v2-stage1">
+#appShell #sidebar{background:#0B1B3F;border-right:1px solid rgba(255,255,255,.06)}
+#appShell .brand{display:flex;justify-content:center;padding:6px 6px 22px}
+#appShell .brand .brand-logo-direct{display:block;width:100%;max-width:184px;height:auto;object-fit:contain}
+@media(max-width:860px){#appShell .brand .brand-logo-direct{max-width:160px}}
+#appShell .user-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+</style>
+<style id="v2-stage2">
+#appShell{--v2-ink:#0F1E3D;--v2-muted:#64748B;--v2-line:#E3EAF5;--v2-blue:#1F6BFF;--v2-card:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05)}
+#appShell .page-subtitle{margin:2px 0 20px;font-size:14px;color:var(--v2-muted)}
+#appShell .list-count{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--v2-muted);margin-bottom:12px}
+/* buttons and inputs */
+#appShell .export-btn,#appShell .submit-btn{min-height:40px;border-radius:10px;font-family:'Inter',system-ui,sans-serif;font-size:14px;font-weight:600}
+#appShell .export-btn{padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+#appShell .submit-btn{padding-left:22px !important;padding-right:22px !important}
+#appShell .text-input{min-height:40px;font-size:14px;border:1px solid var(--v2-line);border-radius:10px;background:#fff}
+#appShell .text-input::placeholder{color:#94A3B8 !important;font-style:normal !important;opacity:1}
+#appShell .export-btn:focus-visible,#appShell .submit-btn:focus-visible{outline:2px solid var(--v2-blue);outline-offset:2px}
+/* payments toolbar */
+#appShell #view-payments-real>div[style*="flex-wrap"]{display:grid !important;grid-template-columns:minmax(200px,2fr) repeat(4,minmax(120px,1fr));gap:10px;background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:12px;box-shadow:var(--v2-card);margin-bottom:18px !important}
+#appShell #view-payments-real>div[style*="flex-wrap"] .text-input{max-width:none !important;width:100%;margin-bottom:0 !important}
+@media(max-width:1100px){#appShell #view-payments-real>div[style*="flex-wrap"]{grid-template-columns:repeat(3,minmax(0,1fr))}#appShell #paySearch{grid-column:span 3}}
+@media(max-width:640px){#appShell #view-payments-real>div[style*="flex-wrap"]{grid-template-columns:repeat(2,minmax(0,1fr))}#appShell #paySearch{grid-column:span 2}}
+/* patients toolbar */
+#appShell #view-patients-real>div[style*="flex-wrap"]{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:12px;box-shadow:var(--v2-card);margin-bottom:18px !important;justify-content:space-between}
+#appShell #patientSearch{max-width:380px !important;flex:1 1 240px;margin-bottom:0 !important}
+#appShell #addPatientBtn{background:var(--v2-blue);color:#fff;border-color:transparent;box-shadow:0 6px 14px rgba(31,107,255,.25)}
+#appShell #addPatientBtn:hover{background:#1857D6}
+/* entry cards */
+#appShell .entry-card{background:#fff;border:1px solid var(--v2-line);border-radius:14px;padding:16px 18px;margin-bottom:10px;box-shadow:var(--v2-card);transition:box-shadow .15s,border-color .15s}
+#appShell .entry-card:hover{border-color:#CBD7EC;box-shadow:0 2px 4px rgba(15,30,61,.06),0 8px 22px rgba(15,30,61,.08)}
+#appShell .entry-top{align-items:center;gap:14px}
+#appShell .entry-name{font-size:15.5px;font-weight:600;color:var(--v2-ink)}
+#appShell .entry-date{font-family:'Inter',system-ui,sans-serif;font-size:12.5px;color:var(--v2-muted);margin-top:3px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+#appShell .entry-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;text-align:right}
+#appShell .entry-total{font-family:'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700;color:var(--v2-ink)}
+#appShell #patientList .entry-total{color:#047857 !important}
+#appShell .fee-tags{gap:8px;margin-top:12px}
+#appShell .fee-tag{background:#F4F7FC;border:1px solid var(--v2-line);border-radius:8px;padding:4px 9px;gap:6px}
+#appShell .fee-tag-label{font-size:12px;font-weight:500;color:#334155}
+#appShell .fee-tag-amt{font-family:'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:12px;font-weight:600;color:var(--v2-ink)}
+#appShell .entry-notes{margin-top:10px;padding-top:10px;border-top:1px solid #EEF3FB;font-size:13px;line-height:1.5;color:#475569}
+/* status badges */
+#appShell .entry-right .stamp{display:inline-block;font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 10px;border-radius:999px;border:0;transform:none;margin:0}
+#appShell .entry-right .stamp[style*="2f5233" i]{color:#047857 !important;background:#D1FAE5}
+#appShell .entry-right .stamp[style*="9c3b2e" i]{color:#B45309 !important;background:#FEF3C7}
+#appShell .entry-card.rdx-voided .entry-right .stamp.small{color:#475569 !important;background:#E2E8F0}
+/* voided cards */
+#appShell .entry-card.rdx-voided{opacity:.8;background:#F8FAFC;border-style:dashed}
+#appShell .entry-card.rdx-voided .entry-name{color:#64748B}
+#appShell .entry-card.rdx-voided .fee-tags{opacity:.6}
+/* actions menu */
+#appShell .rdx-dots{width:36px;height:36px;border:1px solid var(--v2-line);background:#fff;border-radius:10px;color:var(--v2-ink);font-size:20px;display:inline-flex;align-items:center;justify-content:center}
+#appShell .rdx-dots:hover{background:#F1F5FB;border-color:#CBD7EC}
+#appShell .rdx-dots:focus-visible,#appShell .rdx-pop button:focus-visible{outline:2px solid var(--v2-blue);outline-offset:2px}
+#appShell .rdx-pop{min-width:200px;padding:6px}
+#appShell .rdx-pop button{font-weight:500;min-height:38px}
+#appShell .rdx-pop button.danger{margin-top:4px;border-top:1px solid #EEF3FB;border-radius:0 0 8px 8px;color:#B42318}
+#appShell .rdx-pop button.danger:hover{background:#FEF3F2}
+/* patient chips */
+#appShell #patientList .entry-date{margin-top:8px}
+#appShell .pt-chip{display:inline-flex;align-items:center;background:#F4F7FC;border:1px solid var(--v2-line);color:#475569;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:500}
+#appShell .pt-chip:first-child{background:#E5EEFF;border-color:#D3E1FF;color:#1F4FD1}
+/* empty state */
+#appShell .empty-state{background:#fff;border:1px dashed #CBD7EC;border-radius:14px;padding:40px 16px;color:var(--v2-muted)}
+#appShell #payList .empty-state::after{content:"Try a different search, or clear the filters.";display:block;margin-top:6px;font-size:13px;color:#94A3B8}
+@media(max-width:560px){#appShell .entry-card{padding:14px}#appShell .entry-total{font-size:16px}}
+</style>
+<script id="v2-stage2-js">
+(function(){
+function init(){
+var $=function(id){return document.getElementById(id)};
+[['paySearch','Search by patient name'],['payFeeFilter','Filter by fee type'],['payStatusFilter','Filter by status'],['payFromDate','From date'],['payToDate','To date'],['patientSearch','Search patients']].forEach(function(p){var el=$(p[0]);if(el){el.setAttribute('aria-label',p[1]);el.title=p[1];}});
+function chips(){var l=$('patientList');if(!l)return;l.querySelectorAll('.entry-card .entry-date').forEach(function(d){if(d.dataset.pt)return;d.dataset.pt='1';var parts=d.textContent.split('\u00b7').map(function(s){return s.trim();}).filter(Boolean);if(!parts.length)return;d.textContent='';parts.forEach(function(t){var s=document.createElement('span');s.className='pt-chip';s.textContent=t;d.appendChild(s);});});}
+var l=$('patientList');if(l){new MutationObserver(chips).observe(l,{childList:true});}
+chips();
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+</script>
+<style id="v2-stage25">
+#mobileTopbar .mt-logocard{background:transparent !important;padding:0 !important;border-radius:0 !important}
+#mobileTopbar .mt-logo{width:auto !important;height:26px !important;max-width:150px !important;max-height:none !important}
+#mobileTopbar{background:#0B1B3F !important;border-bottom:1px solid rgba(255,255,255,.08)}
+#mobileTopbar .mt-title{color:#B6C3DD;font-size:15px;font-weight:500}
+#mobileTopbar .mt-menu:focus-visible{outline:2px solid #1F6BFF;outline-offset:2px}
+/* reports toolbar */
+#appShell #repPeriodSeg{display:inline-flex !important;margin:0 14px 16px 0;vertical-align:middle}
+#appShell #view-reports-real .range-nav{display:inline-flex !important;align-items:center;gap:8px;margin:0 0 16px !important;vertical-align:middle}
+#appShell #view-reports-real .cards-row .card,#appShell #view-expenses-real .cards-row .card{background:#fff !important;border:1px solid #E3EAF5;border-radius:14px;box-shadow:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05)}
+#appShell #repReceived{color:#047857 !important}
+#appShell #repPending{color:#B45309 !important}
+#appShell #repTxnCount,#appShell #expTotal,#appShell #expToday,#appShell #expMonth{color:#0F1E3D}
+#appShell #view-reports-real .panel,#appShell #view-expenses-real .panel{background:#fff;border:1px solid #E3EAF5;border-radius:14px;box-shadow:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05)}
+#appShell #repExportBtn{margin-top:4px}
+</style>
+<style id="v2-stage3">
+/* expense form */
+#appShell #expenseForm{padding:20px}
+#appShell #expenseForm>div:first-child{display:grid !important;grid-template-columns:2fr 1fr 1fr 1fr;gap:14px}
+#appShell #expenseForm .exp-field{min-width:0}
+#appShell #expenseForm .exp-field .text-input{width:100%;max-width:none !important;min-width:0 !important;flex:none !important;margin-bottom:0 !important}
+#appShell #expenseForm label.field-label{font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px}
+#appShell #expenseForm>.exp-field{margin-top:14px}
+#appShell #expenseForm .submit-btn{margin-top:16px;width:auto}
+@media(max-width:900px){#appShell #expenseForm>div:first-child{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){#appShell #expenseForm>div:first-child{grid-template-columns:1fr}}
+#appShell .v2-note{font-size:12.5px;color:#64748B;margin:-4px 0 16px}
+/* reports bars */
+#appShell #repTypeBars .bar-row{margin-bottom:16px}
+#appShell #repTypeBars .top{font-size:14px;font-weight:500;color:#0F1E3D;margin-bottom:6px}
+#appShell #repTypeBars .top span:last-child{font-family:'Inter',system-ui,sans-serif !important;font-variant-numeric:tabular-nums;font-weight:600}
+#appShell #repTypeBars .bar-track{height:10px;border-radius:999px;background:#E8EEF8}
+#appShell #repTypeBars .bar-fill{border-radius:999px}
+/* categories */
+#appShell #categoryGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+#appShell #categoryGrid .plan-card{background:#fff;border:1px solid #E3EAF5;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05)}
+#appShell #categoryGrid .plan-name{display:flex;align-items:center;gap:8px;font-family:'Inter',system-ui,sans-serif !important;font-size:14px;font-weight:600;color:#0F1E3D !important}
+#appShell #categoryGrid .plan-name::before{content:"";width:10px;height:10px;border-radius:50%;background:#94A3B8}
+#appShell #categoryGrid .plan-card:nth-child(1) .plan-name::before{background:#0D9488}
+#appShell #categoryGrid .plan-card:nth-child(2) .plan-name::before{background:#2563EB}
+#appShell #categoryGrid .plan-card:nth-child(3) .plan-name::before{background:#D97706}
+#appShell #categoryGrid .plan-card:nth-child(4) .plan-name::before{background:#7C3AED}
+#appShell #categoryGrid .plan-price{font-family:'Inter',system-ui,sans-serif !important;font-variant-numeric:tabular-nums;font-size:28px;font-weight:700;color:#0F1E3D;margin:10px 0 4px}
+/* expense voided rows */
+#appShell #expenseList .entry-card.rdx-voided .entry-total{text-decoration:line-through}
+</style>
+<script type="module" id="v2-expense-actions">
+import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, query, where, getDocs, runTransaction, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+(function () {
+'use strict';
+var db, auth;
+try { var app = getApp(); db = getFirestore(app); auth = getAuth(app); }
+catch (e) { if (window.console) console.warn('Expense actions unavailable', e); return; }
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+var rupee = function (n) { return '\u20b9' + Number(n || 0).toLocaleString('en-IN'); };
+var nowISO = function () { return new Date().toISOString(); };
+var uid = function () { return auth.currentUser ? auth.currentUser.uid : null; };
+var CATS = ['Rent', 'Salaries', 'Supplies', 'Utilities', 'Other'];
+var busy = false;
+var aid = function (x) { return 'exp_' + x.id; };
+var all = function () { return window.__rdExpenses || []; };
+var find = function (id) { return all().filter(function (x) { return x.id === id; })[0]; };
+function toast(msg, bad) {
+var t = $('rdx-toast');
+if (!t) { t = document.createElement('div'); t.id = 'rdx-toast'; t.setAttribute('role', 'status'); ($('appShell') || document.body).appendChild(t); }
+t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+clearTimeout(toast.h); toast.h = setTimeout(function () { t.className = ''; }, 4500);
+}
+function overlay() {
+var ov = $('xp-ov'); if (ov) return ov;
+ov = document.createElement('div'); ov.id = 'xp-ov'; ov.className = 'sheet-overlay';
+ov.innerHTML = '<div class="sheet rdx-sheet" role="dialog" aria-modal="true"><div class="xp-body"></div></div>';
+ov.addEventListener('click', function (ev) { if (ev.target === ov || (ev.target.closest && ev.target.closest('[data-xclose]'))) closeSheet(); });
+($('appShell') || document.body).appendChild(ov); return ov;
+}
+function sheet(html) { var ov = overlay(); ov.querySelector('.xp-body').innerHTML = html; ov.classList.add('open'); var f = ov.querySelector('input:not([type=hidden]),select,textarea'); if (f) f.focus(); }
+function closeSheet() { if (busy) return; var ov = $('xp-ov'); if (ov) ov.classList.remove('open'); }
+function lock(on) { busy = on; var ov = $('xp-ov'); if (ov) ov.querySelectorAll('button').forEach(function (b) { b.disabled = on; }); }
+function setErr(m) { var e = $('xp-err'); if (e) e.textContent = m || ''; }
+function errText(err) {
+var c = err && (err.code || err.message) || '';
+if (/permission-denied/.test(c)) return 'Permission denied. Please make sure the security rules are published, then try again.';
+if (c === 'voided') return 'This expense has already been voided.';
+if (c === 'missing') return 'This expense no longer exists.';
+if (/unavailable|network/.test(c)) return 'Could not reach the database. Check your connection and try again.';
+return 'Something went wrong (' + (c || 'unknown') + '). Nothing was changed.';
+}
+function fmtChange(k, c) {
+var lab = { name: 'Name', category: 'Category', amount: 'Amount', date: 'Date', notes: 'Notes' }[k] || k;
+var f = k === 'amount' ? rupee(c.from) : (c.from === '' ? '(empty)' : String(c.from));
+var t = k === 'amount' ? rupee(c.to) : (c.to === '' ? '(empty)' : String(c.to));
+return '<li><b>' + esc(lab) + ':</b> ' + esc(f) + ' &rarr; ' + esc(t) + '</li>';
+}
+async function viewExpense(x) {
+sheet('<h2>Expense details</h2><table class="rdx-t">' +
+'<tr><td>Name</td><td class="r">' + esc(x.name) + '</td></tr><tr><td>Category</td><td class="r">' + esc(x.category) + '</td></tr>' +
+'<tr><td>Date</td><td class="r">' + esc(x.date) + '</td></tr><tr><td><b>Amount</b></td><td class="r"><b>' + rupee(x.amount) + '</b></td></tr>' +
+'<tr><td>Status</td><td class="r">' + (x.voided ? 'Voided' : 'Active') + '</td></tr>' +
+(x.notes ? '<tr><td>Notes</td><td class="r">' + esc(x.notes) + '</td></tr>' : '') +
+(x.voided ? '<tr><td>Void reason</td><td class="r">' + esc(x.voidReason || '') + '</td></tr>' : '') + '</table>' +
+'<h3 class="rdx-h3">History</h3><div id="xp-hist" class="rdx-hist">Loading&hellip;</div>' +
+'<div class="rdx-actions"><button type="button" class="submit-btn" data-xclose>Close</button></div>');
+var host = $('xp-hist');
+try {
+var snap = await getDocs(query(collection(db, 'entry_audit'), where('userId', '==', uid()), where('entryId', '==', aid(x))));
+var items = []; snap.forEach(function (d) { items.push(d.data()); });
+items.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
+if (!host) return;
+host.innerHTML = items.length ? items.map(function (a) {
+var ch = a.changes ? '<ul>' + Object.keys(a.changes).map(function (k) { return fmtChange(k, a.changes[k]); }).join('') + '</ul>' : '';
+return '<div class="rdx-h"><b>' + (a.action === 'void' ? 'Voided' : 'Corrected') + '</b> <span>' + esc(new Date(a.at).toLocaleString('en-IN')) + '</span><div>Reason: ' + esc(a.reason) + '</div>' + ch + '</div>';
+}).join('') : 'No corrections or voids recorded.';
+} catch (err) { if (host) host.textContent = 'History is unavailable right now.'; }
+}
+function readForm() {
+return { name: $('xp-name').value.trim(), category: $('xp-cat').value, amount: parseFloat($('xp-amt').value), date: $('xp-date').value, notes: $('xp-notes').value.trim(), reason: $('xp-reason').value.trim() };
+}
+function validate(n) {
+if (!n.name || n.name.length > 100) return 'Enter the expense name (up to 100 characters).';
+if (!(n.amount > 0) || n.amount > 10000000) return 'Enter an amount above zero.';
+if (!/^\d{4}-\d{2}-\d{2}$/.test(n.date) || isNaN(new Date(n.date + 'T00:00:00').getTime())) return 'Enter a valid date.';
+if (n.notes.length > 500) return 'Notes can be up to 500 characters.';
+if (n.reason.length < 3 || n.reason.length > 300) return 'Please give a reason for the correction (3 to 300 characters).';
+return '';
+}
+function diff(x, n) {
+var ch = {};
+if (n.name !== String(x.name || '')) ch.name = { from: String(x.name || ''), to: n.name };
+if (n.category !== String(x.category || '')) ch.category = { from: String(x.category || ''), to: n.category };
+if (n.amount !== Number(x.amount)) ch.amount = { from: Number(x.amount) || 0, to: n.amount };
+if (n.date !== String(x.date || '')) ch.date = { from: String(x.date || ''), to: n.date };
+if (n.notes !== String(x.notes || '')) ch.notes = { from: String(x.notes || ''), to: n.notes };
+return ch;
+}
+function correctExpense(x) {
+var cats = CATS.slice(); if (x.category && cats.indexOf(x.category) < 0) cats.push(x.category);
+sheet('<h2>Correct expense</h2><p class="rdx-note">Fix details you entered wrongly. Your changes are saved together with the old values, so there is a record of the correction.</p>' +
+'<form id="xp-form" novalidate><label class="field-label">Expense name</label><input class="text-input" id="xp-name" maxlength="100" value="' + esc(x.name) + '">' +
+'<label class="field-label">Category</label><select class="text-input" id="xp-cat">' + cats.map(function (c) { return '<option' + (c === x.category ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
+'<label class="field-label">Amount</label><input class="text-input" type="number" min="0" step="0.01" inputmode="decimal" id="xp-amt" value="' + esc(x.amount) + '">' +
+'<label class="field-label">Date</label><input class="text-input" type="date" id="xp-date" value="' + esc(x.date) + '">' +
+'<label class="field-label">Notes (optional)</label><input class="text-input" id="xp-notes" maxlength="500" value="' + esc(x.notes || '') + '">' +
+'<label class="field-label">Reason for correction (required)</label><input class="text-input" id="xp-reason" maxlength="300" placeholder="e.g. wrong amount typed">' +
+'<div id="xp-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-xclose>Cancel</button><button type="submit" class="submit-btn">Review changes</button></div></form>' +
+'<div id="xp-sum" style="display:none"></div>');
+$('xp-form').addEventListener('submit', function (ev) {
+ev.preventDefault();
+var n = readForm(), msg = validate(n);
+if (msg) { setErr(msg); return; }
+var ch = diff(x, n);
+if (!Object.keys(ch).length) { setErr('Nothing has changed.'); return; }
+$('xp-form').style.display = 'none';
+var sum = $('xp-sum'); sum.style.display = 'block';
+sum.innerHTML = '<h3 class="rdx-h3">Confirm these changes</h3><ul class="rdx-ch">' + Object.keys(ch).map(function (k) { return fmtChange(k, ch[k]); }).join('') + '</ul><p class="rdx-note">Reason: ' + esc(n.reason) + '</p><div id="xp-err" class="rdx-err"></div>' +
+'<div class="rdx-actions"><button type="button" id="xp-back" class="export-btn">Back</button><button type="button" id="xp-save" class="submit-btn">Confirm and save</button></div>';
+$('xp-back').addEventListener('click', function () { sum.style.display = 'none'; $('xp-form').style.display = 'block'; });
+$('xp-save').addEventListener('click', async function () {
+if (busy) return; lock(true);
+try {
+await runTransaction(db, async function (tx) {
+var ref = doc(db, 'expenses', x.id), snap = await tx.get(ref);
+if (!snap.exists()) throw { code: 'missing' };
+var cur = snap.data();
+if (cur.voided) throw { code: 'voided' };
+if (cur.userId !== uid()) throw { code: 'permission-denied' };
+tx.update(ref, { name: n.name, category: n.category, amount: n.amount, date: n.date, notes: n.notes, correctedAt: nowISO(), correctionCount: (Number(cur.correctionCount) || 0) + 1 });
+tx.set(doc(collection(db, 'entry_audit')), { userId: uid(), entryId: aid(x), action: 'correct', reason: n.reason, changes: ch, at: nowISO() });
+});
+lock(false); closeSheet(); toast('Expense corrected. Totals are updated.');
+} catch (err) { lock(false); setErr(errText(err)); }
+});
+});
+}
+var REASONS = ['Duplicate entry', 'Wrong amount', 'Entered by mistake', 'Not a clinic expense', 'Other'];
+function voidExpense(x) {
+sheet('<h2>Void this expense?</h2><p class="rdx-note"><b>' + esc(x.name) + '</b> &middot; ' + esc(x.date) + ' &middot; ' + rupee(x.amount) + '</p>' +
+'<p class="rdx-note">The expense stays in your list marked <b>Voided</b>, but it will no longer count in your expense totals. Voiding does <b>not</b> change any actual payment you made.</p>' +
+'<label class="field-label">Reason (required)</label><select class="text-input" id="xp-vr">' + REASONS.map(function (r) { return '<option>' + r + '</option>'; }).join('') + '</select>' +
+'<input class="text-input" id="xp-vo" maxlength="200" placeholder="Details (required if Other)" style="display:none">' +
+'<div id="xp-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-xclose>Cancel</button><button type="button" id="xp-go" class="submit-btn danger">Void entry</button></div>');
+$('xp-vr').addEventListener('change', function () { $('xp-vo').style.display = $('xp-vr').value === 'Other' ? 'block' : 'none'; });
+$('xp-go').addEventListener('click', async function () {
+if (busy) return;
+var r = $('xp-vr').value, o = $('xp-vo').value.trim();
+if (r === 'Other' && o.length < 3) { setErr('Please describe the reason.'); return; }
+var reason = r === 'Other' ? o : r + (o ? ': ' + o : '');
+lock(true);
+try {
+await runTransaction(db, async function (tx) {
+var ref = doc(db, 'expenses', x.id), snap = await tx.get(ref);
+if (!snap.exists()) throw { code: 'missing' };
+var cur = snap.data();
+if (cur.voided) throw { code: 'voided' };
+if (cur.userId !== uid()) throw { code: 'permission-denied' };
+tx.update(ref, { voided: true, voidedAt: nowISO(), voidReason: reason });
+tx.set(doc(collection(db, 'entry_audit')), { userId: uid(), entryId: aid(x), action: 'void', reason: reason, at: nowISO() });
+});
+lock(false); closeSheet(); toast('Expense voided. It no longer counts in totals.');
+} catch (err) { lock(false); setErr(errText(err)); }
+});
+}
+function deleteExpense(x) {
+sheet('<h2>Delete this expense?</h2><p class="rdx-note"><b>' + esc(x.name) + '</b> &middot; ' + esc(x.date) + ' &middot; ' + rupee(x.amount) + '</p>' +
+'<p class="rdx-note">This permanently removes the expense and its correction history. If the expense really happened, consider <b>Void Entry</b> instead, which keeps a record.</p>' +
+'<div id="xp-err" class="rdx-err"></div><div class="rdx-actions"><button type="button" class="export-btn" data-xclose>Cancel</button><button type="button" id="xp-go" class="submit-btn danger">Delete expense</button></div>');
+$('xp-go').addEventListener('click', async function () {
+if (busy) return; lock(true);
+try {
+var refs = [];
+try { var s = await getDocs(query(collection(db, 'entry_audit'), where('userId', '==', uid()), where('entryId', '==', aid(x)))); s.forEach(function (d) { refs.push(d.ref); }); } catch (q) { }
+var b = writeBatch(db);
+refs.forEach(function (r) { b.delete(r); });
+b.delete(doc(db, 'expenses', x.id));
+await b.commit();
+lock(false); closeSheet(); toast('Expense deleted.');
+} catch (err) { lock(false); setErr(errText(err)); }
+});
+}
+function closeMenus() { document.querySelectorAll('.rdx-menu.open').forEach(function (m) { m.classList.remove('open'); var b = m.querySelector('.rdx-dots'); if (b) b.setAttribute('aria-expanded', 'false'); }); }
+function attach(card, x) {
+var top = card.querySelector('.entry-top'); if (!top) return;
+var wrap = document.createElement('div'); wrap.className = 'rdx-menu';
+wrap.innerHTML = '<button type="button" class="rdx-dots" aria-label="Actions" aria-haspopup="true" aria-expanded="false">&#8942;</button><div class="rdx-pop" role="menu">' +
+'<button type="button" role="menuitem" data-a="view">View Details</button>' +
+(x.voided ? '' : '<button type="button" role="menuitem" data-a="correct">Correct Entry</button><button type="button" role="menuitem" data-a="void">Void Entry</button>') +
+'<button type="button" role="menuitem" data-a="del" class="danger">Delete Entry</button></div>';
+top.appendChild(wrap);
+var dots = wrap.querySelector('.rdx-dots'), pop = wrap.querySelector('.rdx-pop');
+dots.addEventListener('click', function (ev) {
+ev.stopPropagation(); var open = !wrap.classList.contains('open'); closeMenus();
+if (open) { var r = dots.getBoundingClientRect(); pop.style.top = (r.bottom + 4) + 'px'; pop.style.right = Math.max(8, window.innerWidth - r.right) + 'px'; wrap.classList.add('open'); dots.setAttribute('aria-expanded', 'true'); }
+});
+wrap.querySelectorAll('[data-a]').forEach(function (b) {
+b.addEventListener('click', function (ev) {
+ev.stopPropagation(); closeMenus();
+var cur = find(x.id) || x;
+({ view: viewExpense, correct: correctExpense, 'void': voidExpense, del: deleteExpense })[b.dataset.a](cur);
+});
+});
+}
+function enhance() {
+var list = $('expenseList'); if (!list) return;
+list.querySelectorAll('.entry-card').forEach(function (card) {
+if (card.dataset.xp) return;
+var idEl = card.querySelector('[data-id]'); if (!idEl) return;
+var x = find(idEl.dataset.id); if (!x) return;
+card.dataset.xp = '1';
+card.querySelectorAll('[data-action="edelete"]').forEach(function (b) { b.style.display = 'none'; });
+var meta = card.querySelector('.entry-date');
+var add = function (cls, txt) { if (!meta) return; var s = document.createElement('span'); s.className = 'rdx-tag ' + cls; s.textContent = txt; meta.appendChild(s); };
+if (x.correctedAt) add('fix', 'Corrected');
+if (x.voided) { add('void', 'Voided' + (x.voidReason ? ': ' + x.voidReason : '')); card.classList.add('rdx-voided'); }
+attach(card, x);
+});
+}
+var pending = false;
+function kick() { if (pending) return; pending = true; requestAnimationFrame(function () { pending = false; enhance(); }); }
+var list = $('expenseList'); if (list) new MutationObserver(kick).observe(list, { childList: true });
+document.addEventListener('click', closeMenus);
+window.addEventListener('scroll', closeMenus, true);
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeMenus(); closeSheet(); } });
+/* labels for the add-expense form */
+[['expName', 'Expense name'], ['expCategory', 'Category'], ['expAmount', 'Amount (INR)'], ['expDate', 'Date'], ['expNotes', 'Notes (optional)']].forEach(function (m) {
+var el = $(m[0]); if (!el || (el.parentNode.classList && el.parentNode.classList.contains('exp-field'))) return;
+var w = document.createElement('div'); w.className = 'exp-field';
+var l = document.createElement('label'); l.className = 'field-label'; l.setAttribute('for', m[0]); l.textContent = m[1];
+el.parentNode.insertBefore(w, el); w.appendChild(l); w.appendChild(el);
+});
+/* notes under totals */
+function note(viewId, text) { var v = $(viewId); if (!v || v.querySelector('.v2-note')) return; var row = v.querySelector('.cards-row'); if (!row) return; var p = document.createElement('p'); p.className = 'v2-note'; p.textContent = text; row.insertAdjacentElement('afterend', p); }
+note('view-expenses-real', 'Voided expenses are shown greyed out and are not counted in these totals.');
+note('view-reports-real', 'Voided payments are not included in these totals or in the CSV export.');
+kick();
+})();
+</script>
+<style id="v2-stage4a">
+/* dashboard KPI cards: white with a thin accent, no pale gradients */
+#appShell .cards-row .card,#appShell .cards-row .card:nth-child(n){background:#fff !important;border:1px solid #E3EAF5 !important;border-radius:14px;box-shadow:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05) !important;position:relative;overflow:hidden}
+#appShell .cards-row .card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:#CBD7EC}
+#appShell .cards-row .card:nth-child(1)::before{background:#10B981}
+#appShell .cards-row .card:nth-child(2)::before{background:#F59E0B}
+#appShell .cards-row .card:nth-child(3)::before{background:#1F6BFF}
+#appShell .cards-row .card:nth-child(4)::before{background:#64748B}
+#appShell .card-label{font-size:11.5px;font-weight:600;letter-spacing:.06em;color:#64748B}
+/* panels and titles */
+#appShell .panel{background:#fff;border:1px solid #E3EAF5;border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05)}
+#appShell .panel-title{font-family:'Inter',system-ui,sans-serif;font-size:15px;font-weight:700;letter-spacing:0;text-transform:none;color:#0F1E3D;margin-bottom:14px}
+/* settings tabs */
+#appShell #settingsTabs{width:100% !important;flex-wrap:nowrap !important;overflow-x:auto;gap:2px;padding:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+#appShell #settingsTabs button{white-space:nowrap;flex:0 0 auto;text-transform:none;font-size:14px;padding:9px 18px;min-height:40px}
+#appShell #settingsTabs button:focus-visible{outline:2px solid #1F6BFF;outline-offset:-2px}
+/* settings forms */
+#appShell [id^="settingsTab-"] label.field-label{font-size:12.5px;font-weight:600;color:#334155;margin:14px 0 6px}
+#appShell [id^="settingsTab-"] .text-input{width:100%;max-width:520px}
+#appShell [id^="settingsTab-"] .submit-btn{width:auto;margin-top:20px}
+#appShell .text-input[readonly],#appShell .text-input[disabled]{background:#F4F7FC;color:#64748B;cursor:not-allowed;border-style:dashed}
+#appShell .text-input:disabled,#appShell .submit-btn:disabled{opacity:.7}
+/* subscription */
+#appShell #subStatusPanel{padding:22px}
+#appShell #planGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:stretch;margin-bottom:20px}
+#appShell #planGrid .plan-card{display:flex;flex-direction:column;border:1px solid #E3EAF5;border-radius:16px;padding:24px;box-shadow:0 1px 2px rgba(15,30,61,.05),0 4px 14px rgba(15,30,61,.05);min-height:260px}
+#appShell #planGrid .plan-card.current{border:2px solid #1F6BFF;background:#F7FAFF;box-shadow:0 6px 20px rgba(31,107,255,.12)}
+#appShell #planGrid .plan-name{font-family:'Inter',system-ui,sans-serif !important;font-size:16px;font-weight:700;color:#0F1E3D;margin-bottom:6px}
+#appShell #planGrid .plan-price{font-family:'Inter',system-ui,sans-serif !important;font-variant-numeric:tabular-nums;font-size:32px;font-weight:700;color:#0F1E3D;margin-bottom:14px}
+#appShell #planGrid .plan-price span{font-size:13px;font-weight:500;color:#64748B}
+#appShell #planGrid .plan-features{margin-bottom:18px}
+#appShell #planGrid .plan-features li{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:14px;color:#475569}
+#appShell #planGrid .plan-features li::before{content:"";flex:0 0 14px;height:14px;border-radius:50%;background:#E5EEFF url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%231F6BFF%27 stroke-width=%273.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%2720 6 9 17 4 12%27/%3E%3C/svg%3E") center/10px no-repeat}
+#appShell #planGrid .plan-card>*:last-child{margin-top:auto}
+#appShell #planGrid .plan-card button{min-height:42px;border-radius:10px;font-size:14px;font-weight:600}
+#appShell #subCancelInfo{background:#F8FAFC}
+#appShell #subCancelInfo p{max-width:760px}
+#appShell #subCancelInfo a{color:#1F6BFF;font-weight:500}
+@media(max-width:560px){#appShell #planGrid{grid-template-columns:1fr}#appShell #planGrid .plan-card{min-height:0}}
+</style>
+<style id="v2-stage4b">
+/* settings: shared */
+#appShell [id^="settingsTab-"]{padding:24px}
+#appShell [id^="settingsTab-"] .auth-msg{margin-top:12px;font-size:13.5px;max-width:520px}
+#appShell #saveProfileBtn,#appShell #changePasswordBtn{min-height:42px;padding:0 24px !important;border-radius:10px}
+#appShell #settingsTab-security .text-input{max-width:420px}
+/* settings: subscription tab */
+#appShell #setSubPanel{font-size:14px;color:#475569;line-height:1.6}
+/* referral */
+#appShell .referral-box{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#F4F7FC;border:1px solid #E3EAF5;border-radius:12px;padding:14px 16px;max-width:560px}
+#appShell .referral-code{font-family:'Inter',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-size:18px;font-weight:700;letter-spacing:.04em;color:#0F1E3D;flex:1 1 200px;word-break:break-all}
+#appShell #setCopyReferral{background:#1F6BFF;color:#fff;border-color:transparent}
+#appShell #setCopyReferral:hover{background:#1857D6}
+/* data and privacy */
+#appShell #setExportCsv{margin-bottom:20px !important}
+#appShell #settingsTab-data>div{background:#FEF7F6;border:1px solid #FBD5D0 !important;border-radius:12px;padding:18px !important;margin-top:6px;max-width:640px}
+#appShell #settingsTab-data>div p{font-size:13.5px !important;line-height:1.6;color:#475569 !important;max-width:none !important;margin:0 0 14px}
+#appShell #deleteAccountBtn{background:#fff;border:1px solid #D92D20 !important;color:#B42318 !important}
+#appShell #deleteAccountBtn:hover{background:#FEF3F2}
+#appShell #deleteAccountBtn:focus-visible{outline:2px solid #D92D20;outline-offset:2px}
+/* plan badges */
+#appShell .plan-badge{font-family:'Inter',system-ui,sans-serif;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+#appShell .plan-badge.active{background:#D1FAE5;color:#047857}
+#appShell .plan-badge.trial{background:#E5EEFF;color:#1F4FD1}
+#appShell #planGrid .plan-card .plan-badge{position:absolute;top:18px;right:18px}
+#appShell #planGrid .plan-btn.primary{background:#1F6BFF;color:#fff;border:none;box-shadow:0 6px 14px rgba(31,107,255,.25)}
+#appShell #planGrid .plan-btn.primary:hover{background:#1857D6}
+#appShell #planGrid .plan-btn:disabled{background:#F4F7FC;color:#64748B;border:1px solid #E3EAF5;box-shadow:none;opacity:1 !important;cursor:default}
+@media(max-width:560px){#appShell [id^="settingsTab-"]{padding:18px}}
+</style>
+<style id="v2-stage5">
+/* compact type scale and density */
+#appShell{font-size:14px;line-height:1.5}
+#appShell #main{padding:20px 28px 90px}
+#appShell .page-title{font-size:22px;font-weight:700;line-height:1.25}
+#appShell .page-subtitle{font-size:13px;margin:2px 0 16px}
+#appShell .card{padding:12px 16px}
+#appShell .card-label{font-size:11px}
+#appShell .card-value{font-size:22px;line-height:1.2}
+#appShell .cards-row{gap:12px;margin-bottom:14px}
+#appShell .panel{padding:16px;margin-bottom:14px}
+#appShell .panel-title{font-size:14px;margin-bottom:10px}
+#appShell .list-count{font-size:11px;margin-bottom:8px}
+/* inputs and buttons */
+#appShell .text-input{min-height:38px;font-size:13.5px;padding-top:7px;padding-bottom:7px}
+#appShell .export-btn,#appShell .submit-btn{min-height:36px;font-size:13px}
+#appShell .export-btn{padding:0 14px}
+#appShell .nav-btn{width:32px;height:32px}
+#appShell .segmented button{padding:7px 18px;font-size:13px}
+#appShell .range-label{font-size:13px;padding:7px 14px;min-width:130px}
+#appShell label.field-label{font-size:12px}
+/* sidebar */
+@media(min-width:861px){#appShell #sidebar{width:232px;padding:16px 12px}}
+@media(min-width:861px) and (max-width:1100px){#appShell #sidebar{width:216px}}
+#appShell .brand .brand-logo-direct{max-width:150px}
+#appShell .brand{padding:4px 6px 16px}
+#appShell .user-card{padding:10px;border-radius:12px}
+#appShell .user-card-name{font-size:13.5px}
+#appShell .user-card-role{font-size:11.5px}
+#appShell .nav-item{padding:9px 12px;font-size:13.5px;margin-bottom:3px;border-radius:10px;gap:10px}
+#appShell .nav-item .dot{width:18px;height:18px}
+/* entries */
+#appShell .entry-card{padding:12px 16px;margin-bottom:8px}
+#appShell .entry-name{font-size:14.5px}
+#appShell .entry-date{font-size:12px}
+#appShell .entry-total{font-size:16px}
+#appShell .fee-tags{margin-top:8px;gap:6px}
+#appShell .fee-tag{padding:3px 8px}
+#appShell .fee-tag-label,#appShell .fee-tag-amt{font-size:11.5px}
+#appShell .entry-right .stamp{font-size:10.5px;padding:2px 9px}
+#appShell .rdx-dots{width:32px;height:32px;font-size:18px}
+#appShell .empty-state{padding:28px 16px;font-size:13.5px}
+/* filters toolbar */
+#appShell #view-payments-real>div[style*="flex-wrap"],#appShell #view-patients-real>div[style*="flex-wrap"]{padding:10px;margin-bottom:14px !important}
+/* categories and plans */
+#appShell #categoryGrid .plan-card{padding:16px}
+#appShell #categoryGrid .plan-price{font-size:22px;margin:8px 0 2px}
+#appShell #categoryGrid .plan-name{font-size:13.5px}
+#appShell #planGrid .plan-card{padding:20px;min-height:220px}
+#appShell #planGrid .plan-price{font-size:26px;margin-bottom:10px}
+#appShell #planGrid .plan-name{font-size:15px}
+#appShell #planGrid .plan-features li{font-size:13px;padding:3px 0}
+#appShell #planGrid .plan-card button{min-height:38px;font-size:13px}
+#appShell #subStatusPanel{padding:18px}
+/* settings */
+#appShell [id^="settingsTab-"]{padding:20px}
+#appShell #settingsTabs button{font-size:13px;padding:7px 16px;min-height:36px}
+#appShell .referral-code{font-size:16px}
+/* dialogs */
+#appShell .sheet h2{font-size:18px}
+#appShell .rdx-sheet{max-width:460px}
+/* page content width on very large screens */
+@media(min-width:1500px){#appShell #main>div[id^="view-"]{max-width:1280px}}
+@media(max-width:860px){#appShell #main{padding-left:14px;padding-right:14px}#appShell .card-value{font-size:20px}}
+</style>
 </body>
 </html>
 
@@ -2871,7 +3686,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
   const entryTotal2 = (e) => Object.values(e.fees || {}).reduce((a, b) => a + (Number(b) || 0), 0);
   const entryFeeKeys2 = (e) => Object.keys(e.fees || {}).filter((k) => e.fees[k] > 0);
   const fmtDateLong2 = (d) => d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-  const fmtDateShort2 = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+  const fmtDateShort2 = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
   const escapeHtml2 = (s) => { const d = document.createElement("div"); d.textContent = s || ""; return d.innerHTML; };
   function addMonths2(date, n) { const d = new Date(date.getTime()); d.setMonth(d.getMonth() + n); return d; }
   function addDays2(date, n) { const d = new Date(date.getTime()); d.setDate(d.getDate() + n); return d; }
@@ -3121,7 +3936,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
 
     const qEntries = query(extClinicCol, where("userId", "==", user.uid));
     unsubEntries2 = onSnapshot(qEntries, (snap) => {
-      extEntries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      extEntries = snap.docs.map((d) => ({ id: d.id, ...d.data() })); window.__rdAll = extEntries.slice(); extEntries = extEntries.filter((e) => !e.voided); window.dispatchEvent(new Event("rdx-data"));
       renderPayments();
       renderPatients();
       renderReports();
@@ -3129,13 +3944,13 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
 
     const qPatients = query(extPatientsCol, where("userId", "==", user.uid));
     unsubPatients2 = onSnapshot(qPatients, (snap) => {
-      extPatientsDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      extPatientsDocs = snap.docs.map((d) => ({ id: d.id, ...d.data() })); window.__rdPatients = extPatientsDocs.slice();
       renderPatients();
     });
 
     const qExpenses = query(extExpensesCol, where("userId", "==", user.uid));
     unsubExpenses2 = onSnapshot(qExpenses, (snap) => {
-      extExpenses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      extExpenses = snap.docs.map((d) => ({ id: d.id, ...d.data() })); window.__rdExpenses = extExpenses.slice();
       renderExpenses();
     });
   });
@@ -3150,7 +3965,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
     const fromDate = document.getElementById("payFromDate").value;
     const toDate = document.getElementById("payToDate").value;
 
-    let list = [...extEntries];
+    let list = [...(window.__rdAll || extEntries)];
     if (search) list = list.filter((e) => (e.patient || "").toLowerCase().includes(search));
     if (feeFilter) list = list.filter((e) => entryFeeKeys2(e).includes(feeFilter));
     if (statusFilter) list = list.filter((e) => e.status === statusFilter);
@@ -3406,9 +4221,9 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
     const monthPrefix = today.slice(0, 7);
     const sorted = [...extExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
     sorted.forEach((x) => {
-      total += Number(x.amount) || 0;
-      if (x.date === today) todayTotal += Number(x.amount) || 0;
-      if ((x.date || "").startsWith(monthPrefix)) monthTotal += Number(x.amount) || 0;
+      if (!x.voided) total += Number(x.amount) || 0;
+      if (x.date === today && !x.voided) todayTotal += Number(x.amount) || 0;
+      if ((x.date || "").startsWith(monthPrefix) && !x.voided) monthTotal += Number(x.amount) || 0;
     });
     document.getElementById("expTotal").textContent = fmtMoney2(total);
     document.getElementById("expToday").textContent = fmtMoney2(todayTotal);
@@ -3500,7 +4315,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
     if (paidStart && paidPlan === "monthly") paidEnd = addMonths2(paidStart, 1);
     if (paidStart && paidPlan === "yearly") paidEnd = addYears2(paidStart, 1);
     let statusLabel, statusDetail;
-    if (paidEnd && paidEnd > now) { statusLabel = "Active"; statusDetail = `${paidPlan} plan, renews ${fmtDateLong2(paidEnd)}`; }
+    if (paidEnd && paidEnd > now) { statusLabel = "Active"; statusDetail = `${paidPlan} plan, valid until ${fmtDateLong2(paidEnd)}`; }
     else if (trialEnd > now) { statusLabel = "Free Trial"; statusDetail = `Valid till ${fmtDateLong2(trialEnd)}`; }
     else { statusLabel = "Expired"; statusDetail = "Choose a plan to continue."; }
     document.getElementById("setSubPanel").innerHTML = `
@@ -3898,7 +4713,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
 
   function syncSigninLayout() {
     const isSignup = signupFieldsEl2.style.display !== "none";
-    authWrapEl2.classList.toggle("signin-mode", !isSignup);
+    var w2 = document.getElementById("authPageWrap"); if (w2) w2.classList.toggle("signin-mode", !isSignup);
     signinLogo.style.display = "flex";
     securityFooter.style.display = isSignup ? "none" : "flex";
     dividerEl.style.display = isSignup ? "none" : "flex";
@@ -3911,7 +4726,7 @@ background:var(--rd-bg);font-family:'Inter','Source Sans 3',system-ui,sans-serif
     }
   }
   new MutationObserver(syncSigninLayout).observe(signupFieldsEl2, { attributes: true, attributeFilter: ["style"] });
-  syncSigninLayout();
+  syncSigninLayout(); window.addEventListener("load", syncSigninLayout);
 </script>
 
 
